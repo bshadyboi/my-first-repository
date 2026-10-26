@@ -1,0 +1,18 @@
+{
+  "name": "HoopIQ — Fantasy Basketball",
+  "short_name": "HoopIQ",
+  "description": "Fantasy basketball analysis, free and mobile-first.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#09111f",
+  "theme_color": "#09111f",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
