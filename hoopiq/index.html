@@ -21,6 +21,46 @@
 .import-mode{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:12px 0}.import-mode select{flex:1;min-width:170px}.import-helper{font-size:11px;line-height:1.65;color:#92abc7;margin-top:12px}
 .import-preview-photo{display:block;max-width:100%;max-height:190px;border-radius:10px;margin-top:12px;border:1px solid #385774}
 @media(max-width:610px){.import-intro{padding:12px}.import-actions .btn{flex:1;min-height:44px}.import-review{padding:12px}.import-icon{width:42px;height:42px}}
+
+/* Real-schedule weekly insight widgets */
+.week-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:15px}
+.week-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.week-controls .btn{min-height:39px}
+.heat-legend{display:flex;gap:14px;flex-wrap:wrap;margin:11px 0;color:#aebfd5;font-size:11px}
+.heat-legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.week-heatmap{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.week-tile{min-width:0;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;padding:12px 6px;border-radius:12px;border:1px solid #304862;background:#14263d}
+.week-tile strong{font-size:20px;line-height:1.15}.week-tile small{font-size:10px;color:#bbcee4}.week-tile em{font-size:10px;font-style:normal;font-weight:800}
+.week-tile.heat-open{border-color:#286c61;background:#103d39}.week-tile.heat-open em{color:#68e7c1}
+.week-tile.heat-full{border-color:#55709a;background:#1d3656}.week-tile.heat-full em{color:#b7d7ff}
+.week-tile.heat-conflict{border-color:#a05e68;background:#502c3a}.week-tile.heat-conflict em{color:#ffc3ca}
+.week-matrix{width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed;min-width:490px}
+.week-matrix th{font-size:10px;color:#a7bed8;font-weight:750}.week-matrix td{text-align:center;padding:10px 2px;border-radius:7px;font-size:12px}
+.week-matrix .playercol{text-align:left;width:135px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:10px}
+.slot-on{background:#164e48;color:#86ffda}.slot-bench{background:#623343;color:#ffc1cb}.slot-off{background:#1a2b40;color:#7f97b1}
+.strategy-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(240px,1fr);gap:16px;align-items:start}
+.pick-card{border:1px solid #315274;border-radius:13px;background:#112840;padding:15px}
+.pick-card+.pick-card{margin-top:11px}.pick-arrow{font-size:12px;color:#91c5f8;margin:10px 0}
+.pick-gain{font-size:25px;font-weight:900;letter-spacing:-.8px;line-height:1.1}
+.pick-metrics{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;font-size:11px;color:#b1c5de}
+.mini-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0}
+.mini-days span{display:grid;place-items:center;border-radius:5px;background:#183148;height:20px;font-size:10px;color:#89a3c4}
+.mini-days span.used{background:#15544b;color:#9bffe1}.mini-days span.blocked{background:#5c3242;color:#ffd0d7}
+.overview-top{display:flex;justify-content:space-between;gap:18px;align-items:center;flex-wrap:wrap}
+.overview-top h2{font-size:clamp(23px,3vw,32px);letter-spacing:-1px;margin:8px 0}
+.overview-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.overview-kpi{background:#11263d;border:1px solid #2b4a6a;border-radius:13px;padding:12px}
+.overview-kpi b{display:block;font-size:23px;letter-spacing:-.5px;margin:4px 0}.overview-kpi span{font-size:10px;color:#a5bcd7}
+.strategy-note{font-size:11px;line-height:1.6;color:#9bb3cf}
+@media(max-width:950px){.strategy-layout{grid-template-columns:1fr}}
+@media(max-width:610px){
+ .week-heatmap{gap:4px}.week-tile{padding:8px 2px;gap:5px;border-radius:9px}.week-tile strong{font-size:17px}
+ .week-tile small,.week-tile em{font-size:9px;line-height:1.15}.week-controls{width:100%;justify-content:space-between}
+ .overview-kpis{gap:7px}.overview-kpi{padding:10px 8px}.overview-kpi b{font-size:20px}
+ .overview-top .buttonrow{width:100%}.overview-top .buttonrow .btn{flex:1}
+ .bottomnav{grid-template-columns:repeat(5,1fr);padding:8px 6px calc(8px + env(safe-area-inset-bottom))}
+ .bottomnav button{font-size:10px;min-height:43px;justify-content:center}.bottomnav button i{font-size:20px}
+ .content{padding-bottom:calc(110px + env(safe-area-inset-bottom))}.hero{padding:20px}.pagehead{margin-bottom:15px}
+}
 </style></head><body><div id="app"></div><script>
 (function(){
 "use strict";
@@ -71,7 +111,7 @@ const rpts=()=>roster().reduce((t,p)=>t+fp(p)*p.games,0);
 function persist(){const z={...state};delete z.view;delete z.selected;delete z.menu;delete z.search;delete z.manualQuery;delete z.waiverQuery;try{localStorage.setItem(storage,JSON.stringify(z))}catch(e){}}
 const ui=(id,ico,label,extra="")=>'<button data-view="'+id+'" class="'+(state.view===id?"active":"")+'"><i>'+ico+'</i>'+label+(extra?'<small>'+extra+'</small>':"")+'</button>';
 function nav(){return '<div class="navsec">WORKSPACE</div><div class="nav">'+ui("dashboard","◈","Overview")+ui("live","◉","NBA Live Center","NEW")+ui("fit","⚡","Pickup Fit Analyzer","NEW")+ui("league","▣","My League")+ui("rankings","▥","Rankings")+ui("projections","▤","Projections")+'</div><div class="navsec">STRATEGY LAB</div><div class="nav">'+ui("trade","⇄","Trade Analyzer","FREE")+ui("waivers","✧","Waiver Finder")+ui("matchups","▦","Matchup Planner")+ui("draft","♛","Draft Board")+'</div><div class="navsec">ACCOUNT</div><div class="nav">'+ui("watchlist","☆","Watchlist")+ui("yahoo","⇆","Connect Yahoo")+ui("settings","⚙","Settings")+'</div>'}
-function shell(content){const title={dashboard:"Overview",live:"NBA Live Center",fit:"Pickup Fit Analyzer",yahoo:"Connect Yahoo",league:"My League",rankings:"Rankings",projections:"Projections",trade:"Trade Analyzer",waivers:"Waiver Finder",matchups:"Matchup Planner",draft:"Draft Board",watchlist:"Watchlist",settings:"Settings"}[state.view];return '<div class="layout"><aside class="sidebar"><div class="logo"><span class="ball">◉</span>Hoop<em>IQ</em></div>'+nav()+'<div class="sidefooter"><b>✦ Premium-style tools, free</b><p>No paywalls. No subscription required to try this interactive prototype.</p><span class="pill blue">VERSION 0.1 PREVIEW</span></div></aside><main class="main"><div class="mobileheader"><div class="logo"><span class="ball">◉</span>Hoop<em>IQ</em></div><button class="btn ghost" data-action="menu" aria-label="Open menu">☰</button></div><header class="top"><div class="location"><span>Workspace / </span> '+title+'</div><div class="toolbar"><span class="pill blue">ALL TOOLS UNLOCKED</span><button class="btn ghost" data-action="status">ⓘ Data status</button><span class="avatar">HQ</span></div></header><div class="banner">PREVIEW: Real NBA statistics are in Live Center. Trade, waiver and draft tools still use sample estimates. Yahoo is not connected.</div><div class="content">'+content+'</div></main><div class="bottomnav">'+[["dashboard","⌂","Home"],["live","◉","Live"],["rankings","▥","Players"],["trade","⇄","Trades"],["waivers","✧","Waivers"],["league","▣","My Team"]].map(x=>'<button data-view="'+x[0]+'" class="'+(state.view===x[0]?"active":"")+'"><i>'+x[1]+'</i>'+x[2]+'</button>').join("")+'</div>'+(state.menu?'<div class="mobilemenu">'+nav()+'</div>':"")+'</div>'}
+function shell(content){const title={dashboard:"Overview",live:"NBA Live Center",fit:"Pickup Fit Analyzer",yahoo:"Connect Yahoo",league:"My League",rankings:"Rankings",projections:"Projections",trade:"Trade Analyzer",waivers:"Waiver Finder",matchups:"Matchup Planner",draft:"Draft Board",watchlist:"Watchlist",settings:"Settings"}[state.view];return '<div class="layout"><aside class="sidebar"><div class="logo"><span class="ball">◉</span>Hoop<em>IQ</em></div>'+nav()+'<div class="sidefooter"><b>✦ Premium-style tools, free</b><p>No paywalls. No subscription required to try this interactive prototype.</p><span class="pill blue">VERSION 0.1 PREVIEW</span></div></aside><main class="main"><div class="mobileheader"><div class="logo"><span class="ball">◉</span>Hoop<em>IQ</em></div><button class="btn ghost" data-action="menu" aria-label="Open menu">☰</button></div><header class="top"><div class="location"><span>Workspace / </span> '+title+'</div><div class="toolbar"><span class="pill blue">ALL TOOLS UNLOCKED</span><button class="btn ghost" data-action="status">ⓘ Data status</button><span class="avatar">HQ</span></div></header><div class="banner">PREVIEW: Real NBA statistics are in Live Center. Trade, waiver and draft tools still use sample estimates. Yahoo is not connected.</div><div class="content">'+content+'</div></main><div class="bottomnav">'+[["dashboard","⌂","Home"],["league","▣","My Team"],["matchups","▦","Week"],["waivers","✧","Waivers"],["menu","☰","More"]].map(x=>'<button data-view="'+x[0]+'" class="'+(state.view===x[0]?"active":"")+'"><i>'+x[1]+'</i>'+x[2]+'</button>').join("")+'</div>'+(state.menu?'<div class="mobilemenu">'+nav()+'</div>':"")+'</div>'}
 const button=(action,label,kind="",extra="")=>'<button class="btn '+kind+'" data-action="'+action+'" '+extra+'>'+label+'</button>';
 const head=(h,p,buttonHtml="")=>'<div class="pagehead"><div><div class="eyebrow">SMARTER FANTASY BASKETBALL</div><h1>'+h+'</h1><p>'+p+'</p></div><div class="buttonrow">'+buttonHtml+'<span class="pill demo">● DEMO DATA</span></div></div>';
 const card=(h,c,right="")=>'<section class="card pad"><div class="cardhead"><h2>'+h+'</h2>'+right+'</div>'+c+'</section>';
@@ -107,7 +147,7 @@ async function updateNBA(){
   if(!arr.length)throw Error("Season stats not available yet");
   nbaPlayers=arr;nbaMeta.updated=json.retrievedAt;nbaMeta.status="ready";nbaMeta.error="";
  }catch(e){nbaMeta.status="error";nbaMeta.error=String(e.message||e)}
- if(["live","league","fit","waivers","rankings","dashboard"].includes(state.view))render();
+ if(["live","league","fit","waivers","rankings","dashboard","matchups"].includes(state.view))render();
 }
 async function updateScores(){
  try{
@@ -144,22 +184,72 @@ function weekDate(base,offset){const d=new Date(base+"T12:00:00Z");d.setUTCDate(
 const normalizeTeam=t=>({UTAH:"UTA",WSH:"WAS",NY:"NYK",GS:"GSW",SA:"SAS",NO:"NOP",PHO:"PHX"})[t]||t;
 const normalizeName=n=>String(n||"").toLowerCase().replace(/[^a-z0-9]/g,"");
 function sampleRoster(){return roster().map(p=>nbaPlayers.find(q=>normalizeName(q.name)===normalizeName(p.name))||p)}
-let weekInfo={start:"",games:[],loading:false,error:"",partial:false};
+let weekInfo={start:"",games:[],loading:false,error:"",partial:false};let weekGameCache=new Map();
 async function loadWeek(force=false){
  const start=state.weekStart||weekMonday();
  if(!force&&weekInfo.start===start&&(weekInfo.loading||weekInfo.games.length))return;
- weekInfo={start,games:[],loading:true,error:"",partial:false};if(["fit","waivers"].includes(state.view))render();
+ weekGameCache.clear();weekInfo={start,games:[],loading:true,error:"",partial:false};if(["fit","waivers","matchups","dashboard"].includes(state.view))render();
  try{
   const response=await fetch("/api/week?start="+start),data=await response.json();
   if(!data.ok)throw Error(data.error||"Week schedule unavailable");
   if(state.weekStart!==start)return;
   weekInfo.games=data.games||[];weekInfo.partial=!!data.partial;
  }catch(e){weekInfo.error=String(e.message||e)}
- weekInfo.loading=false;if(["fit","waivers"].includes(state.view))render();
+ weekInfo.loading=false;if(["fit","waivers","matchups","dashboard"].includes(state.view))render();
 }
 function weekGame(p,date){
- const t=normalizeTeam(p.team);
- return weekInfo.games.filter(g=>g.date===date&&(normalizeTeam(g.home)===t||normalizeTeam(g.away)===t));
+ const t=normalizeTeam(p.team),key=date+"|"+t;
+ if(!weekGameCache.has(key))weekGameCache.set(key,weekInfo.games.filter(g=>g.date===date&&(normalizeTeam(g.home)===t||normalizeTeam(g.away)===t)));
+ return weekGameCache.get(key);
+}
+function scheduleReady(){return weekInfo.start===(state.weekStart||weekMonday())&&!weekInfo.loading&&!weekInfo.error&&weekInfo.games.length>0;}
+function scheduleDays(){
+ const lineup=sampleRoster(),cap=Math.max(1,Math.min(15,Number(state.lineupCount)||6));
+ return Array.from({length:7},(_,i)=>{
+  const date=weekDate(state.weekStart||weekMonday(),i);
+  const scheduled=lineup.flatMap(p=>weekGame(p,date).map(g=>({p,g,value:fp(p)}))).sort((a,b)=>b.value-a.value);
+  const starters=scheduled.slice(0,cap),benched=scheduled.slice(cap);
+  return {date,day:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i],scheduled:scheduled.length,used:starters.length,open:Math.max(0,cap-starters.length),conflicts:benched.length,starters,benched,cap,points:starters.reduce((n,x)=>n+x.value,0)};
+ });
+}
+function weekControls(){
+ const start=state.weekStart||weekMonday(),end=weekDate(start,6);
+ return '<div class="week-controls">'+button("fitprev","‹ Previous","ghost xs")+'<span class="pill blue">'+esc(start.slice(5))+' – '+esc(end.slice(5))+'</span>'+button("fitnext","Next ›","ghost xs")+'</div>';
+}
+function scheduleNotice(){
+ if(weekInfo.loading)return '<div class="note blue" role="status">Loading the NBA game calendar…</div>';
+ if(weekInfo.error)return '<div class="note warn">'+esc(weekInfo.error)+' '+button("fitrefresh","Retry","ghost xs")+'</div>';
+ if(!scheduleReady())return '<div class="note warn">No NBA games available for this week. Try a different week or refresh. '+button("fitrefresh","Refresh","ghost xs")+'</div>';
+ return (weekInfo.partial?'<div class="note warn">The NBA feed returned a partial week. Results may be incomplete.</div>':'');
+}
+function weekHeatmap(days){
+ return '<div class="week-heatmap" role="group" aria-label="Daily lineup capacity heatmap">'+days.map(d=>{
+ const type=d.conflicts?"conflict":d.open?"open":"full",detail=d.conflicts?d.conflicts+" bench":d.open?d.open+" open":"Full";
+ return '<div class="week-tile heat-'+type+'" aria-label="'+d.day+' '+d.date+': '+d.used+' starters, '+d.open+' open spots, '+d.conflicts+' benched"><small>'+d.day+'</small><strong>'+Number(d.date.slice(-2))+'</strong><small>'+d.used+'/'+d.cap+' start</small><em>'+detail+'</em></div>';
+ }).join("")+'</div><div class="heat-legend"><span><i style="background:#2d9780"></i>Open slots</span><span><i style="background:#658ac6"></i>Full</span><span><i style="background:#c66e7c"></i>Bench conflicts</span></div>';
+}
+function addDropSuggestions(limit=4){
+ if(!scheduleReady())return [];
+ const current=sampleRoster(),own=new Set(current.map(p=>normalizeName(p.name)));
+ const candidates=chosenWaivers().filter(p=>!own.has(normalizeName(p.name)))
+  .map(p=>({p,scheduled:Array.from({length:7},(_,i)=>weekGame(p,weekDate(state.weekStart||weekMonday(),i)).length).reduce((a,b)=>a+b,0)}))
+  .filter(x=>x.scheduled>0).sort((a,b)=>b.scheduled*fp(b.p)-a.scheduled*fp(a.p)).slice(0,40);
+ const results=candidates.map(({p})=>{
+  const options=current.length?current.map(drop=>({drop,calc:computeFit(p,drop)})):[{drop:null,calc:computeFit(p,null)}];
+  options.sort((a,b)=>b.calc.gain-a.calc.gain||b.calc.usable-a.calc.usable||a.calc.blocked-b.calc.blocked);
+  return {p,...options[0]};
+ });
+ return results.sort((a,b)=>b.calc.gain-a.calc.gain||b.calc.usable-a.calc.usable).slice(0,limit);
+}
+function suggestionCards(items,compact=false){
+ return items.map(({p,drop,calc},i)=>{
+  const days=calc.days.map((d,j)=>'<span class="'+(d.used?"used":d.blocked?"blocked":"")+'" title="'+d.date+": "+d.used+" usable, "+d.blocked+' conflicts">'+["M","T","W","T","F","S","S"][j]+'</span>').join("");
+  return '<div class="pick-card"><div class="row between"><span class="pill blue">#'+(i+1)+' Schedule fit</span><span class="pick-gain '+(calc.gain>=0?"up":"down")+'">'+(calc.gain>=0?"+":"")+f(calc.gain)+' FP</span></div>'+
+   '<div style="margin-top:13px"><b style="font-size:16px">Add '+esc(p.name)+'</b><div class="pick-arrow">↓ '+(drop?'Drop '+esc(drop.name):'Hypothetical open roster spot')+'</div></div>'+
+   '<div class="pick-metrics"><span>'+calc.usable+' usable / '+calc.games+' scheduled</span><span>'+calc.blocked+' conflicts</span><span>'+f(fp(p))+' season FP/G</span></div>'+
+   '<div class="mini-days" aria-label="Days this pickup would start">'+days+'</div>'+
+   '<div class="buttonrow">'+button("suggestedFit","Inspect comparison","primary xs",'data-id="'+p.id+'" data-drop="'+(drop?esc(drop.name):'')+'"')+(compact?"":button("profile","Player details","ghost xs",'data-id="'+p.id+'"'))+'</div></div>';
+ }).join("");
 }
 function computeFit(pick,drop){
  const old=sampleRoster(),next=old.filter(p=>!drop||normalizeName(p.name)!==normalizeName(drop.name));
@@ -413,10 +503,10 @@ card("iPhone app and saved data",'<span class="pill">INSTALLABLE ON IPHONE</span
 '<div style="height:16px"></div>'+card("Reset local preview",'<p class="muted">Clear all customizations and restore the initial demo team, watchlist and draft board.</p>'+button("resetall","Reset everything","danger"))}
 function detail(){if(!state.selected)return "";const p=P(state.selected);if(!p)return "";return '<div class="modalbg" data-dismiss="yes"><div class="modal" role="dialog" aria-modal="true" aria-label="Player details"><button class="btn ghost close" data-action="close">×</button><div class="row">'+icon(p)+'<div><h2 style="margin:0">'+esc(p.name)+'</h2><div class="muted">'+p.team+' · '+p.pos+'</div></div></div><p><span class="pill demo">'+(p.source==='real'?'ESPN CURRENT-SEASON AVERAGES':'ILLUSTRATIVE PLAYER STAT LINE')+'</span></p><div class="grid three">'+metric("FP per game",f(fp(p)),"Custom scoring","◈")+metric("Games",p.games,p.source==="real"?"Season games played":"Demo week","▦")+metric(p.source==="real"?"Season FP":"Week FP",f(fp(p)*p.games),p.source==="real"?"Calculated total":"Example total","✧")+'</div><hr class="separator"/><div class="tablewrap"><table class="datatable"><thead><tr><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TOV</th></tr></thead><tbody><tr><td>'+f(p.pts)+'</td><td>'+f(p.reb)+'</td><td>'+f(p.ast)+'</td><td>'+f(p.stl)+'</td><td>'+f(p.blk)+'</td><td>'+f(p.tov)+'</td></tr></tbody></table></div><p class="muted small">The player record here is fictional seed data, not an updated profile. The calculator uses your selected point weights.</p><div class="buttonrow">'+button("watch",state.watch.includes(p.id)?"★ Remove watch":"☆ Add watch","primary",'data-id="'+p.id+'"')+button("close","Close","ghost")+'</div></div></div>'}
 function render(){let body=({dashboard,live,fit,yahoo,league,rankings:()=>ranking(false),projections:()=>ranking(true),trade,waivers,matchups,draft,watchlist,settings}[state.view]||dashboard)();$("app").innerHTML=shell(body)+detail();}
-function route(v){if(v==="fit"||v==="waivers"){state.weekStart=state.weekStart||weekMonday();if(weekInfo.start!==state.weekStart)loadWeek()}state.view=v;state.search="";state.position="ALL";state.sort="fp";state.reverse=false;state.menu=false;state.selected=null;persist();render();window.scrollTo(0,0)}
+function route(v){if(["fit","waivers","matchups","dashboard"].includes(v)){state.weekStart=state.weekStart||weekMonday();if(weekInfo.start!==state.weekStart)loadWeek()}state.view=v;state.search="";state.position="ALL";state.sort="fp";state.reverse=false;state.menu=false;state.selected=null;persist();render();window.scrollTo(0,0)}
 function toast(msg){let existing=$("toast");if(existing)existing.remove();let el=document.createElement("div");el.className="toast";el.id="toast";el.textContent=msg;document.body.appendChild(el);setTimeout(()=>{if(el.isConnected)el.remove()},2800)}
 document.addEventListener("click",e=>{
-const nav=e.target.closest("[data-view]");if(nav){route(nav.dataset.view);return}
+const nav=e.target.closest("[data-view]");if(nav){if(nav.dataset.view==="menu"){state.menu=!state.menu;render()}else route(nav.dataset.view);return}
 const el=e.target.closest("[data-action]");if(!el){if(e.target.matches('[data-dismiss="yes"]')){state.selected=null;render()}return}
 const a=el.dataset.action,id=Number(el.dataset.id);
 if(["waivers","trade","league","settings","rankings","dashboard","matchups","fit","yahoo"].includes(a)){route(a);return}
@@ -457,6 +547,7 @@ if(a==="approveRosterScan"){
  toast(ids.length+" players imported into My Team");return
 }
 
+if(a==="suggestedFit"){state.fitPlayer=id;state.fitDrop=el.dataset.drop||"";persist();route("fit");return}
 if(a==="pickfit"){state.fitPlayer=id;route("fit");return}
 
 if(a==="openWaiverCamera"){$("waiverFile")?.click();return}
@@ -507,6 +598,6 @@ if(t.id==="manualquery"){const caret=t.selectionStart;state.manualQuery=t.value;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.selected){state.selected=null;render()}});
 render();
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
-updateNBA();updateScores();setInterval(updateNBA,20*60*1000);setInterval(updateScores,60*1000);
+updateNBA();updateScores();loadWeek();setInterval(updateNBA,20*60*1000);setInterval(updateScores,60*1000);
 })();
 </script></body></html>
