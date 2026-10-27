@@ -13,7 +13,15 @@
 @media(max-width:1180px){.workspace{grid-template-columns:1fr}.four{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:870px){.layout{display:block}.sidebar,.top{display:none}.mobileheader{display:flex;position:sticky;top:0;z-index:15;justify-content:space-between;align-items:center;background:#0d1a2af2;backdrop-filter:blur(10px);border-bottom:1px solid var(--line);height:63px;padding:0 16px}.mobileheader .logo{padding:0;font-size:23px}.mobileheader .logo .ball{width:33px;height:33px}.content{padding:23px 16px 98px}.bottomnav{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;bottom:0;left:0;right:0;padding:8px 4px calc(8px + env(safe-area-inset-bottom));background:#0d1b2df8;border-top:1px solid #344861;z-index:30}.bottomnav button{border:0;background:none;color:#859dbd;font-size:10px;font-weight:800;display:flex;flex-direction:column;gap:3px;align-items:center}.bottomnav button i{font-style:normal;font-size:19px}.bottomnav button.active{color:#78afff}.mobilemenu{display:block;position:fixed;top:63px;right:0;bottom:67px;width:min(315px,86vw);overflow:auto;z-index:25;background:#102039;padding:14px;box-shadow:-90px 0 0 200vw #020714ab}}
 @media(max-width:610px){.content{padding:17px 12px 99px}.three{grid-template-columns:1fr}.two{grid-template-columns:1fr}.four{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:14px;min-height:109px}.metric .number{font-size:24px}.card.pad{padding:15px}.hero{padding:18px}.hero h2{font-size:22px}.hero-icon{display:none}.pagehead h1{font-size:28px}.trade2{grid-template-columns:1fr}.toolbar{display:none}}
- .fitdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}.fitday{display:grid;gap:6px;padding:12px 5px;border:1px solid #385375;border-radius:10px;text-align:center;background:#142941}.fitday b{font-size:20px}.fitdot{color:#6bbcff;font-size:21px}@media(max-width:1050px){.fitdays{grid-template-columns:repeat(4,minmax(0,1fr))}}@media(max-width:610px){.fitdays{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.fitday{padding:9px 3px}}</style></head><body><div id="app"></div><script>
+ .fitdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}.fitday{display:grid;gap:6px;padding:12px 5px;border:1px solid #385375;border-radius:10px;text-align:center;background:#142941}.fitday b{font-size:20px}.fitdot{color:#6bbcff;font-size:21px}@media(max-width:1050px){.fitdays{grid-template-columns:repeat(4,minmax(0,1fr))}}@media(max-width:610px){.fitdays{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.fitday{padding:9px 3px}}
+.import-intro{display:flex;gap:13px;padding:15px;border:1px solid #396493;border-radius:14px;background:linear-gradient(110deg,#19395b,#14283f);margin-bottom:14px}
+.import-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#265b8b;font-size:25px;flex-shrink:0}
+.import-intro h3{font-size:18px;margin:5px 0}.import-intro p{font-size:12px;color:#bad0e5;line-height:1.6;margin:0}.import-actions{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:12px}
+.import-review{border:1px solid #3e6488;background:#122c47;border-radius:13px;margin-top:14px;padding:15px}.import-review label.listitem{cursor:pointer}.import-review input[type=checkbox]{width:19px;height:19px;accent-color:#4f98ff;flex-shrink:0}
+.import-mode{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:12px 0}.import-mode select{flex:1;min-width:170px}.import-helper{font-size:11px;line-height:1.65;color:#92abc7;margin-top:12px}
+.import-preview-photo{display:block;max-width:100%;max-height:190px;border-radius:10px;margin-top:12px;border:1px solid #385774}
+@media(max-width:610px){.import-intro{padding:12px}.import-actions .btn{flex:1;min-height:44px}.import-review{padding:12px}.import-icon{width:42px;height:42px}}
+</style></head><body><div id="app"></div><script>
 (function(){
 "use strict";
 const storage="hoopiq-preview-v2";
@@ -217,7 +225,7 @@ function yahoo(){
 }
 
 function dashboard(){const sorted=[...players].sort((a,b)=>fp(b)-fp(a)),pool=players.filter(p=>p.available&&!state.roster.includes(p.id)).sort((a,b)=>fp(b)-fp(a)),best=pool[0];return head("Your fantasy command center.","One place to explore your league, compare players and discover your next move.",button("status","⌁ Data status","ghost xs"))+
-'<div class="hero"><div><span class="pill">✦ PERSONALIZED STRATEGY — COMING WITH LEAGUE SYNC</span><h2>Less research. Better decisions.</h2><p>Custom rankings, trade scenarios, waiver opportunities, and weekly planning in a faster, easier fantasy dashboard.</p><div class="buttonrow">'+button("waivers","Explore waivers","primary")+button("trade","Analyze a trade","ghost")+'</div></div><div class="hero-icon">◉</div></div>'+
+'<div class="hero"><div><span class="pill">✦ PERSONALIZED STRATEGY — COMING WITH LEAGUE SYNC</span><h2>Less research. Better decisions.</h2><p>Custom rankings, trade scenarios, waiver opportunities, and weekly planning in a faster, easier fantasy dashboard.</p><div class="buttonrow">'+button("league",state.manualRoster?"Manage my roster":"📸 Import my Yahoo team","primary")+button("waivers","Explore waivers","ghost")+'</div></div><div class="hero-icon">◉</div></div>'+
 '<div class="grid four" style="margin-bottom:17px">'+metric("My demo weekly FP",f(rpts(),0),"Roster × sample games","◈")+metric("Roster players",state.roster.length,"Locally saved on device","▣")+metric("Example free agents",pool.length,"Illustrative waiver pool","✧")+metric("Watchlist",state.watch.length,"Saved player targets","☆")+'</div>'+
 '<div class="workspace"><div class="stack">'+card("Your action center",'<div class="row" style="align-items:flex-start"><span class="initial" style="background:#17554c;font-size:20px;width:49px;height:49px">✧</span><div class="grow"><span class="pill">WAIVER DISCOVERY</span><h2 style="font-size:19px;margin:11px 0 5px">Explore '+esc(best?best.name:"your available players")+'</h2><p class="muted">A promising name from the example waiver pool using your own fantasy scoring weights. Open the rankings to see how every option compares.</p>'+button("fit","Analyze schedule conflicts →","mint xs")+'</div></div>')+
 card("Top projected players",sorted.slice(0,6).map(playerRow).join(""),link("rankings-view","Full rankings →",0))+
@@ -225,11 +233,12 @@ card("Projection visualization",'<div class="muted small">Illustrative trend —
 '<div class="stack">'+card("My League",'<div class="row between"><div><div class="eyebrow">TEAM SNAPSHOT</div><h2 style="font-size:19px;margin:8px 0">'+esc(state.name)+'</h2><div class="muted small">'+esc(state.league)+'</div></div><span style="font-size:34px">🏀</span></div><hr class="separator"/><div class="statrow"><span class="muted">Example week</span><b>'+f(rpts(),0)+' FP</b></div><div class="statrow"><span class="muted">Roster size</span><b>'+state.roster.length+'</b></div><div class="statrow"><span class="muted">Yahoo integration</span><span class="pill demo">Not connected</span></div><div style="margin-top:14px">'+button("league","Open My League →","primary full")+'</div>')+
 card("Waiver watch",pool.slice(0,4).map(p=>'<div class="listitem">'+icon(p)+'<div class="grow"><div class="name">'+esc(p.name)+'</div><div class="tiny muted">'+p.pos+' · '+p.own+'% sample rostered</div></div><b class="up">'+f(fp(p))+'</b>'+star(p)+'</div>').join(""),link("waivers-view","Explore →",0))+
 card("Integration status",'<div class="statrow"><span>Custom scoring engine</span><span class="pill">Working</span></div><div class="statrow"><span>On-device persistence</span><span class="pill">Working</span></div><div class="statrow"><span>NBA data API</span><span class="pill demo">Needed</span></div><div class="statrow"><span>Yahoo league sync</span><span class="pill demo">Needed</span></div><div class="statrow"><span>Cross-device accounts</span><span class="pill demo">Needed</span></div>')+'</div></div>'}
-function league(){const rr=roster(),manual=!!state.manualRoster,available=manual?nbaPlayers:players;return head("My League","Customize your team and see every fantasy calculation react to your roster.",button("settings","⚙ Edit scoring","ghost xs"))+
-'<div class="grid four" style="margin-bottom:17px">'+metric(manual?"Roster FP/G":"Projected demo week",manual?f(rr.reduce((sum,item)=>sum+fp(item),0)):f(rpts(),0),manual?"Combined season averages":"FP with example schedule","◈")+metric("Roster size",rr.length,manual?"My players":"Sample players","▣")+metric("Player database",available.length,manual?"NBA current-season stats":"Example player pool","✧")+metric("League","Points","Custom scoring enabled","⚙")+'</div>'+
+function league(){const rr=roster(),manual=!!state.manualRoster,available=manual?(nbaPlayers.length?nbaPlayers:players):players;return head("My League","Import your team from a screenshot, paste a list, or search players manually.",button("settings","⚙ Edit scoring","ghost xs"))+
+'<div class="grid four" style="margin-bottom:17px">'+metric(manual?"Roster FP/G":"Projected demo week",manual?f(rr.reduce((sum,item)=>sum+fp(item),0)):f(rpts(),0),manual?"Combined season averages":"FP with example schedule","◈")+metric("Roster size",rr.length,manual?"My players":"Sample players","▣")+metric("Player database",available.length,manual?(nbaPlayers.length?"NBA current-season stats":"Example player pool"):"Example player pool","✧")+metric("League","Points","Custom scoring enabled","⚙")+'</div>'+
+rosterImportPanel()+'<div style="height:17px"></div>'+
 '<div class="grid two" style="margin-bottom:17px">'+card("Team details",'<div class="stack"><label class="small muted">Team name</label><input id="teamname" class="textinput" maxlength="48" value="'+esc(state.name)+'"/><label class="small muted">League name</label><input id="leaguename" class="textinput" maxlength="48" value="'+esc(state.league)+'"/>'+button("saveleague","Save names","primary")+'</div>')+
 card("Connect your real league",'<span class="pill demo">INTEGRATION NOT YET CONNECTED</span><h2 style="font-size:18px;margin:12px 0">Yahoo Fantasy Sync</h2><p class="muted">In the connected version, sign in securely to import roster information, scoring settings and waiver availability. Yahoo API access and a secure database are prerequisites.</p>'+button("yahoo","Yahoo connection setup","primary xs")+'<p class="tiny muted">Names and settings currently save only in this browser.</p>')+'</div>'+
-card(manual?"My manually entered roster":"Demo roster",'<div class="note blue" style="margin-bottom:12px">'+(manual?'Your local copy of your actual Yahoo roster. Adding or removing players here never changes Yahoo.':'This is a sample team. '+button("mystart","Enter my actual roster →","primary xs"))+'</div>'+(manual?'<input id="manualquery" class="textinput" placeholder="Search NBA players to add..." autocomplete="off" style="width:100%;margin:0 0 10px" value="'+esc(state.manualQuery)+'"/>':'')+'<div class="filterrow"><select class="select" id="addroster"><option value="">+ Choose a player...</option>'+available.filter(p=>!state.roster.includes(p.id)&&(!manual||!state.manualQuery||(p.name+' '+p.team).toLowerCase().includes(state.manualQuery.toLowerCase()))).slice(0,60).map(p=>'<option value="'+p.id+'">'+esc(p.name)+' · '+p.team+'</option>').join("")+'</select></div><div class="tablewrap"><table class="datatable"><thead><tr><th>Player</th><th>Position</th><th>FP/G</th><th>Games</th><th>Week</th><th></th></tr></thead><tbody>'+rr.map(p=>'<tr><td>'+link("profile",esc(p.name),p.id)+'</td><td>'+p.pos+'</td><td>'+f(fp(p))+'</td><td>'+p.games+'</td><td><b>'+f(fp(p)*p.games)+'</b></td><td>'+button("removeroster","Remove","ghost xs",'data-id="'+p.id+'"')+'</td></tr>').join("")+'</tbody></table></div><p class="muted tiny">'+(manual?'This is your local roster copy. Export it from Settings for a backup. Players with no NBA games may be missing.':'This modifies only the sample team, not your Yahoo roster.')+'</p>')}
+card(manual?"My manually entered roster":"Demo roster",'<div class="note blue" style="margin-bottom:12px">'+(manual?'Your local copy of your actual Yahoo roster. Adding or removing players here never changes Yahoo.':'This is a sample team. '+button("mystart","Enter my actual roster →","primary xs"))+'</div>'+(manual?'<input id="manualquery" class="textinput" placeholder="Search NBA players to add..." autocomplete="off" style="width:100%;margin:0 0 10px" value="'+esc(state.manualQuery)+'"/>':'')+'<div class="filterrow"><select class="select" id="addroster"><option value="">+ Choose a player...</option>'+available.filter(p=>!state.roster.includes(p.id)&&(!manual||!state.manualQuery||(p.name+' '+p.team).toLowerCase().includes(state.manualQuery.toLowerCase()))).slice(0,60).map(p=>'<option value="'+p.id+'">'+esc(p.name)+' · '+p.team+'</option>').join("")+'</select></div><div class="tablewrap"><table class="datatable"><thead><tr><th>Player</th><th>Position</th><th>FP/G</th><th>Games*</th><th>FP × Games*</th><th></th></tr></thead><tbody>'+rr.map(p=>'<tr><td>'+link("profile",esc(p.name),p.id)+'</td><td>'+p.pos+'</td><td>'+f(fp(p))+'</td><td>'+p.games+'</td><td><b>'+f(fp(p)*p.games)+'</b></td><td>'+button("removeroster","Remove","ghost xs",'data-id="'+p.id+'"')+'</td></tr>').join("")+'</tbody></table></div><p class="muted tiny">'+(manual?'This is your local roster copy. Export it from Settings for a backup. *Games means played season games for live players, or example counts for sample players—not upcoming weekly games.':'This modifies only the sample team, not your Yahoo roster.')+'</p>')}
 function ranking(proj){const showingLive=!proj&&nbaPlayers.length>0;let data=(showingLive?nbaPlayers:players).filter(p=>(!state.search||(p.name+" "+p.team).toLowerCase().includes(state.search.toLowerCase()))&&(state.position==="ALL"||p.pos===state.position));data.sort((a,b)=>{const k=state.sort,va=k==="name"?a.name:k==="games"?a.games:k==="own"?a.own:k==="weekly"?fp(a)*a.games:fp(a),vb=k==="name"?b.name:k==="games"?b.games:k==="own"?b.own:k==="weekly"?fp(b)*b.games:fp(b);return (typeof va==="string"?va.localeCompare(vb):va-vb)*(state.reverse?1:-1)});return head(proj?"Player Projections":"Player Rankings",proj?"Evaluate illustrative per-game projections with customizable fantasy points.":showingLive?"Actual 2026–27 NBA season averages scored using your settings. Not forecasts.":"Search and sort sample player estimates while the NBA feed loads.",button("settings","⚙ Custom scoring","ghost xs"))+
 card((proj?"Projected player statistics":showingLive?"Real NBA season rankings":"Custom demo rankings")+' <span class="muted tiny">('+data.length+')</span>','<div class="filterrow"><input id="playersearch" class="textinput" placeholder="⌕ Search players, teams..." value="'+esc(state.search)+'"/><select id="position" class="select"><option value="ALL">All positions</option>'+["PG","SG","SF","PF","C"].map(x=>'<option '+(state.position===x?"selected":"")+'>'+x+'</option>').join("")+'</select><select id="sort" class="select">'+[["fp","Fantasy FP/G"],["weekly","Week points"],["games","Games"],["own","Rostered %"],["name","Player name"]].map(x=>'<option value="'+x[0]+'" '+(state.sort===x[0]?"selected":"")+'>'+x[1]+'</option>').join("")+'</select>'+button("reverse","↕","ghost xs")+'</div>'+
 '<div class="tablewrap"><table class="datatable"><thead><tr><th>#</th><th>Player</th><th>FP/G</th>'+(proj?'<th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TOV</th>':'<th>'+(showingLive?'GP':'Games')+'</th><th>'+(showingLive?'Season FP':'Week FP')+'</th><th>'+(showingLive?'Source':'Rostered')+'</th>')+'<th>Watch</th></tr></thead><tbody>'+data.map((p,i)=>'<tr><td class="muted">'+(i+1)+'</td><td><div class="row">'+icon(p)+'<div><button class="tableplayer" data-action="profile" data-id="'+p.id+'">'+esc(p.name)+'</button><div class="tiny muted">'+p.team+' · '+p.pos+'</div></div></div></td><td><strong>'+f(fp(p))+'</strong></td>'+(proj?'<td>'+f(p.pts)+'</td><td>'+f(p.reb)+'</td><td>'+f(p.ast)+'</td><td>'+f(p.stl)+'</td><td>'+f(p.blk)+'</td><td>'+f(p.tov)+'</td>':'<td>'+p.games+'</td><td>'+f(fp(p)*p.games)+'</td><td>'+(showingLive?'ESPN':p.own+'%')+'</td>')+'<td>'+star(p)+'</td></tr>').join("")+'</tbody></table></div><p class="small muted">'+(showingLive?'Real recorded season averages; fantasy totals reflect season games played, not forecasts.':'Sample estimates, not current projections.')+'</p>')}
@@ -240,7 +249,11 @@ return head("Trade Analyzer","Test single and multi-player trades using your fan
 card("Why this is useful",'<p class="muted">Compare trades using <strong>fantasy points above a baseline replacement player</strong>, rather than adding up points with no regard for roster depth.</p><p class="muted">Change point values in Settings and return here: the math recalculates immediately. Add two or more players per side to explore multi-player deals.</p><div class="note warn">This balance score is not a winning probability. A production model would need live projections, injury context, roster depth and playoff schedules.</div>')+'</div>'}
 
 
-const imageReview={busy:false,error:"",names:[],selected:new Set(),preview:""};
+const imageReview={busy:false,error:"",names:[],selected:new Set(),preview:"",target:"waiver",replaceRoster:false};
+function clearImageReview(){
+ imageReview.names=[];imageReview.selected=new Set();imageReview.error="";imageReview.busy=false;
+ if(imageReview.preview){URL.revokeObjectURL(imageReview.preview);imageReview.preview=""}
+}
 function chosenWaivers(){
  const a=Array.isArray(state.waiverIds)?state.waiverIds:[],result=[];
  for(const id of a){
@@ -257,17 +270,23 @@ function getNamesFromText(raw){
   const name=player.name.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim();
   if(name.length>=5&&!unique.has(name))unique.set(name,player);
  }
- return [...unique].filter(([n])=>full.some(line=>(" "+line+" ").includes(" "+n+" "))).map(([n,p])=>({id:p.id,name:p.name,team:p.team})).slice(0,80);
+ return [...unique].filter(([n])=>{
+ const parts=n.split(" "),rev=parts.length>1?parts.slice(1).join(" ")+" "+parts[0]:n;
+ return full.some(line=>(" "+line+" ").includes(" "+n+" ")||(" "+line+" ").includes(" "+rev+" "));
+}).map(([n,p])=>({id:p.id,name:p.name,team:p.team})).slice(0,80);
 }
-function suggestPhotoNames(text){
+function suggestPhotoNames(text,target=imageReview.target){
+ if(imageReview.target!==target)clearImageReview();
+ imageReview.target=target;
  imageReview.names=getNamesFromText(text);
  imageReview.selected=new Set(imageReview.names.map(x=>x.id));
  imageReview.busy=false;
- imageReview.error=imageReview.names.length?"":"No NBA names matched. Try a clearer screenshot, or use paste/search.";
+ imageReview.error=imageReview.names.length?"":"No matching players found. Try a clearer screenshot, paste names, or use manual search.";
  render();
 }
-async function scanYahooPhoto(file){
- if(!file)return;
+async function scanYahooPhoto(file,target="waiver"){
+ if(!file||imageReview.busy)return;
+ imageReview.target=target;
  if(!file.type?.startsWith("image/")){imageReview.error="Select a screenshot image.";render();return}
  if(file.size>15*1024*1024){imageReview.error="Choose an image smaller than 15 MB.";render();return}
  imageReview.error="";imageReview.busy=true;imageReview.names=[];
@@ -289,27 +308,47 @@ async function scanYahooPhoto(file){
    if(el&&m.progress!=null)el.textContent="Reading screenshot locally… "+Math.round(m.progress*100)+"%";
   }});
   const value=await worker.recognize(file);
-  suggestPhotoNames(value?.data?.text||"");
+  suggestPhotoNames(value?.data?.text||"",target);
  }catch(e){
   imageReview.error="Image scanning unavailable: "+String(e.message||e)+". You can still paste or search player names.";
   imageReview.busy=false;render();
  }finally{if(worker)try{await worker.terminate()}catch(e){}}
+}
+
+function rosterImportPanel(){
+ const active=imageReview.target==="roster",hasMatches=active&&imageReview.names.length;
+ const review=hasMatches?'<div class="import-review"><div class="row between"><b>Review '+imageReview.names.length+' detected players</b><span class="pill blue">Select names</span></div><p class="small muted">Uncheck any incorrect names, then save to your team.</p>'+
+ imageReview.names.map(p=>'<label class="listitem"><input type="checkbox" data-reviewroster="'+p.id+'" '+(imageReview.selected.has(p.id)?"checked":"")+'/><div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+'</div></div></label>').join("")+
+ (state.manualRoster?'<div class="import-mode"><label class="small muted" for="rosterImportMode">Import mode</label><select id="rosterImportMode" class="select"><option value="add" '+(!imageReview.replaceRoster?"selected":"")+'>Add to current roster</option><option value="replace" '+(imageReview.replaceRoster?"selected":"")+'>Replace entire roster</option></select></div>':
+ '<div class="note blue" style="margin-top:12px">Your first import will replace demo players in HoopIQ. It will not change Yahoo.</div>')+
+ '<div class="buttonrow" style="margin-top:13px">'+button("approveRosterScan","✓ Save selected players","primary")+button("cancelRosterScan","Cancel","ghost")+'</div></div>':"";
+ return card("Import your Yahoo roster",
+ '<div class="import-intro"><div class="import-icon">📸</div><div><span class="pill blue">NO YAHOO LOGIN NEEDED</span><h3>Build your real team in seconds</h3><p>Take screenshots of Yahoo <b>My Team</b> and review the detected player names. You can upload more screenshots to add additional players.</p></div></div>'+
+ '<div class="import-actions">'+button("openRosterPhoto","📷 Upload screenshot","primary")+button("toggleRosterPaste","Paste names","ghost")+(state.manualRoster?button("focusRosterSearch","Type a name","ghost"):button("mystart","Enter manually","ghost"))+'</div>'+
+ '<input id="rosterFile" type="file" accept="image/*" style="display:none" aria-label="Choose Yahoo roster screenshot"/>'+
+ (active&&imageReview.busy?'<div class="note blue" id="yahooOCRstatus" role="status">Reading screenshot locally…</div>':"")+
+ (active&&imageReview.error?'<div class="note warn" style="margin-top:12px" role="alert">'+esc(imageReview.error)+'</div>':"")+
+ (active&&imageReview.preview?'<img class="import-preview-photo" alt="Selected Yahoo roster screenshot" src="'+esc(imageReview.preview)+'"/>':"")+
+ review+
+ (state.rosterPasteOpen?'<div style="margin-top:12px"><label class="small muted" for="rosterPaste">Player names, one per line</label><textarea id="rosterPaste" class="textinput" style="display:block;width:100%;min-height:115px;resize:vertical;margin:8px 0" placeholder="Nikola Jokic&#10;Anthony Edwards"></textarea>'+button("parseRosterPaste","Review pasted names","primary xs")+'</div>':"")+
+ (!nbaPlayers.length?'<div class="note warn" style="margin-top:12px">The live NBA player directory has not loaded. Only example players can be matched right now. Retry once data loads, or enter names manually.</div>':"")+
+ '<p class="import-helper">Images stay on your device. The first scan downloads Tesseract.js for browser-based text recognition. Only player names you approve are saved locally; this does not sign in or make Yahoo transactions.</p>');
 }
 function waiverImagePanel(){
  const saved=chosenWaivers(),q=String(state.waiverQuery||"").trim().toLowerCase();
  const matches=q.length>=2?nbaPlayers.filter(p=>!saved.some(x=>x.id===p.id)&&(p.name+" "+p.team).toLowerCase().includes(q)).slice(0,10):[];
  const suggestions=matches.map(p=>'<div class="listitem">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+' · '+p.pos+'</div></div>'+button("addKnownWaiver","Add","mint xs",'data-id="'+p.id+'"')+'</div>').join("");
  const items=saved.map(p=>'<div class="listitem">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+'</div></div>'+button("removeKnownWaiver","Remove","ghost xs",'data-id="'+p.id+'"')+'</div>').join("");
- const preview=imageReview.names.length?'<div class="tradepane" style="margin-top:14px"><b>Review detected players ('+imageReview.names.length+')</b><p class="muted small">Uncheck any player who is not actually available in your Yahoo league, then confirm.</p>'+
+ const preview=imageReview.target==="waiver"&&imageReview.names.length?'<div class="tradepane" style="margin-top:14px"><b>Review detected players ('+imageReview.names.length+')</b><p class="muted small">Uncheck any player who is not actually available in your Yahoo league, then confirm.</p>'+
  imageReview.names.map(p=>'<label class="listitem"><input type="checkbox" data-reviewwaiver="'+p.id+'" '+(imageReview.selected.has(p.id)?"checked":"")+'/><div class="grow"><b>'+esc(p.name)+'</b><div class="muted tiny">'+esc(p.team)+'</div></div></label>').join("")+
  '<div class="buttonrow" style="margin-top:13px">'+button("approveWaiverScan","Save selected names","primary")+button("cancelWaiverScan","Cancel","ghost")+'</div></div>':"";
  return card("1. Add available players from Yahoo",
  '<p class="small muted">Take a screenshot of your Yahoo Fantasy <b>Players → Available</b> page, select it here, and HoopIQ will read the names for you. Review the matches before adding them.</p>'+
  '<div class="buttonrow">'+button("openWaiverCamera","📷 Upload screenshot","primary")+button("toggleWaiverPaste","Paste names","ghost")+'</div>'+
  '<input id="waiverFile" type="file" accept="image/*" style="display:none"/>'+
- (imageReview.busy?'<div class="note blue" id="yahooOCRstatus" style="margin-top:12px">Loading on-device image reader…</div>':"")+
- (imageReview.error?'<div class="note warn" style="margin-top:12px">'+esc(imageReview.error)+'</div>':"")+
- (imageReview.preview?'<img alt="Selected Yahoo screenshot preview" src="'+esc(imageReview.preview)+'" style="display:block;max-width:100%;max-height:160px;border-radius:9px;margin-top:12px"/>':"")+
+ (imageReview.target==="waiver"&&imageReview.busy?'<div class="note blue" id="yahooOCRstatus" style="margin-top:12px">Loading on-device image reader…</div>':"")+
+ (imageReview.target==="waiver"&&imageReview.error?'<div class="note warn" style="margin-top:12px">'+esc(imageReview.error)+'</div>':"")+
+ (imageReview.target==="waiver"&&imageReview.preview?'<img alt="Selected Yahoo screenshot preview" src="'+esc(imageReview.preview)+'" style="display:block;max-width:100%;max-height:160px;border-radius:9px;margin-top:12px"/>':"")+
  preview+
  (state.pasteOpen?'<div style="margin-top:12px"><textarea id="waiverPaste" class="textinput" style="display:block;width:100%;min-height:105px;resize:vertical;margin-bottom:8px" placeholder="One player per line, or pasted text from Yahoo"></textarea>'+button("parseWaiverPaste","Review pasted names","primary xs")+'</div>':"")+
  '<hr class="separator"/><label class="small muted">Or search and add by name</label><input id="waiverQuery" class="textinput" placeholder="Search NBA players…" style="display:block;width:100%;margin:9px 0" value="'+esc(state.waiverQuery||"")+'" autocomplete="off"/>'+
@@ -386,7 +425,7 @@ if(a==="menu"){state.menu=!state.menu;render();return}
 if(a==="watch"){state.watch=state.watch.includes(id)?state.watch.filter(x=>x!==id):[...state.watch,id];persist();render();toast("Watchlist updated");return}
 if(a==="profile"){state.selected=id;render();return}
 if(a==="close"){state.selected=null;render();return}
-if(a==="status"){state.selected=null;alert("HoopIQ v0.1 is a functional preview with illustrative player data. Local player rankings, scoring, trade scenarios, draft picks, settings and the PWA shell work. NBA live data, injuries, Yahoo OAuth, accounts and true cross-device sync are NOT connected yet.");return}
+if(a==="status"){state.selected=null;alert("HoopIQ v0.1 is a functional preview with illustrative player data. Local player rankings, scoring, trade scenarios, draft picks, settings and the PWA shell work. Live NBA scores and season stats rely on an unofficial source. Injuries, Yahoo OAuth, accounts and true cross-device sync are NOT connected yet.");return}
 if(a==="refreshnba"){updateNBA();updateScores();return}
 if(a==="fitprev"||a==="fitnext"){state.weekStart=weekDate(state.weekStart||weekMonday(),a==="fitnext"?7:-7);persist();loadWeek(true);return}
 if(a==="fitrefresh"){loadWeek(true);return}
@@ -394,13 +433,36 @@ if(a==="fitcapacity"){const v=Number($("fitcapacity").value);if(v>=1&&v<=15)stat
 if(a==="fitodds"){state.fitOpp=$("fitopponent").value;persist();render();return}
 
 if(a==="mystart"){if(confirm("Replace sample players with an empty manual roster? This does not change Yahoo.")){state.manualRoster=true;state.roster=[];state.cachePlayers={};state.fitDrop="";persist();render()}return}
+if(a==="focusRosterSearch"){$("manualquery")?.focus();$("manualquery")?.scrollIntoView({behavior:"smooth",block:"center"});return}
+if(a==="openRosterPhoto"){$("rosterFile")?.click();return}
+if(a==="toggleRosterPaste"){state.rosterPasteOpen=!state.rosterPasteOpen;render();return}
+if(a==="parseRosterPaste"){suggestPhotoNames($("rosterPaste")?.value||"","roster");return}
+if(a==="cancelRosterScan"){clearImageReview();render();return}
+if(a==="approveRosterScan"){
+ if(imageReview.target!=="roster")return;
+ const ids=[...imageReview.selected].filter(id=>imageReview.names.some(p=>p.id===id));
+ if(!ids.length){toast("Select at least one player");return}
+ const replace=!state.manualRoster||imageReview.replaceRoster;
+ if(replace&&state.manualRoster&&state.roster.length&&!confirm("Replace your entire HoopIQ roster?"))return;
+ const next=replace?[]:[...state.roster];
+ for(const id of ids){
+  const player=nbaPlayers.find(p=>p.id===id)||players.find(p=>p.id===id);
+  if(player){
+   if(!next.includes(id))next.push(id);
+   state.cachePlayers={...(state.cachePlayers||{}),[id]:player};
+  }
+ }
+ state.roster=next.slice(0,30);state.manualRoster=true;state.fitDrop="";
+ imageReview.replaceRoster=false;clearImageReview();persist();render();
+ toast(ids.length+" players imported into My Team");return
+}
 
 if(a==="pickfit"){state.fitPlayer=id;route("fit");return}
 
 if(a==="openWaiverCamera"){$("waiverFile")?.click();return}
 if(a==="toggleWaiverPaste"){state.pasteOpen=!state.pasteOpen;render();return}
 if(a==="parseWaiverPaste"){suggestPhotoNames($("waiverPaste")?.value||"");return}
-if(a==="cancelWaiverScan"){imageReview.names=[];imageReview.selected=new Set();if(imageReview.preview){URL.revokeObjectURL(imageReview.preview);imageReview.preview=""}render();return}
+if(a==="cancelWaiverScan"){clearImageReview();render();return}
 if(a==="approveWaiverScan"){
  const ids=[...imageReview.selected],pool=[...nbaPlayers,...players];
  state.waiverIds=[...new Set([...(state.waiverIds||[]),...ids])].slice(0,120);
@@ -429,6 +491,9 @@ if(a==="export"){const z={...state};delete z.selected;delete z.view;delete z.men
 if(a==="import"){$("importfile").click();return}
 });
 document.addEventListener("change",e=>{const t=e.target;
+ if(t.dataset.reviewroster){const id=Number(t.dataset.reviewroster);if(t.checked)imageReview.selected.add(id);else imageReview.selected.delete(id);return}
+ if(t.id==="rosterImportMode"){imageReview.replaceRoster=t.value==="replace";return}
+ if(t.id==="rosterFile"&&t.files?.[0]){scanYahooPhoto(t.files[0],"roster");return}
 if(t.dataset.reviewwaiver){const id=Number(t.dataset.reviewwaiver);if(t.checked)imageReview.selected.add(id);else imageReview.selected.delete(id);return}
 if(t.id==="waiverFile"&&t.files?.[0]){scanYahooPhoto(t.files[0]);return}
 if(t.id==="fitplayer"){state.fitPlayer=Number(t.value);persist();render();return}if(t.id==="fitdrop"){state.fitDrop=t.value;persist();render();return}if(t.id==="position"){state.position=t.value;render()}

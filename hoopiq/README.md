@@ -8,6 +8,7 @@ Mobile-first fantasy basketball research, with an installable iPhone PWA.
 - Current NBA season averages and game schedules via an unofficial ESPN data source
 - Custom fantasy basketball scoring and rankings
 - Manual roster builder while Yahoo Fantasy API authorization is pending
+- **Yahoo roster screenshot import:** open My League, choose a screenshot from iPhone Photos, review recognized players and save them to your local team. The first import replaces sample players; future imports can add or replace.
 - **Yahoo available-player screenshot import:** choose an image from iPhone Photos; on-device Tesseract.js OCR proposes names, then you approve the matches before saving
 - Text-paste and manual player search as fallback methods
 - Waiver Fit Scout restricted to your manually marked available players
@@ -32,10 +33,13 @@ vercel dev
 For deployment on Vercel using this repository, configure **Root Directory = hoopiq** (if keeping the project inside `my-first-repository`), and deploy as an Other/no-framework project.
 
 ## Yahoo screenshots
-On your iPhone, open **Waiver Wire Finder → Upload screenshot**. Choose a screenshot from Yahoo's available-player list. Image recognition runs locally in your browser with Tesseract.js (first use downloads a JavaScript library and English OCR model); the screenshot itself is not uploaded to the HoopIQ server. Check detected player names before saving. OCR may miss or misread names. Do not rely on the screenshot to establish up-to-the-minute waiver availability.
+To import your real roster, open **My League → Upload screenshot**, select a screenshot of **Yahoo My Team**, and review the detected players. The initial save replaces the demo roster. Later screenshots can add players without removing existing ones, or replace your local roster when explicitly selected and confirmed. You can also choose **Paste names** or **Enter manually**.
+
+To import available players, open **Waiver Wire Finder → Upload screenshot**. Choose a screenshot from Yahoo's available-player list. Image recognition runs locally in your browser with Tesseract.js (first use downloads a JavaScript library and English OCR model); the screenshot itself is not uploaded to the HoopIQ server. Check detected player names before saving. OCR may miss or misread names. Do not rely on the screenshot to establish up-to-the-minute waiver availability.
 
 ## Limits
 - **Yahoo OAuth is not connected.** Yahoo Fantasy access must be approved and configured separately; no roster transactions are executed.
+- Screenshot recognition matches text against players available in the app's current directory. Small text, imperfect OCR, unsupported names or missing live stats may cause incomplete matches; always review and correct the selection. Live season games played are not weekly projected games.
 - Player names marked available and manual rosters are stored only in local browser storage, not synchronized between devices.
 - Player fantasy-point estimates derive from *recorded season averages*, not validated future projections.
 - Start-slot simulation uses a simplified total daily player limit; it does not implement exact Yahoo position slots, injuries or acquisition limits.
