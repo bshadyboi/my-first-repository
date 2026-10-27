@@ -320,28 +320,32 @@ function yahoo(){
 }
 
 function dashboard(){
- const lineup=sampleRoster(),ready=scheduleReady(),days=ready?scheduleDays():[];
- const starters=days.reduce((n,d)=>n+d.used,0),conflicts=days.reduce((n,d)=>n+d.conflicts,0);
- const recommendations=ready?addDropSuggestions(2):[],known=chosenWaivers().length;
- const mode=state.manualRoster?"MY SAVED TEAM":"EXAMPLE TEAM · IMPORT YOURS";
- return '<div class="overview-top" style="margin-bottom:17px"><div><div class="eyebrow">'+mode+'</div><h2>Your fantasy week, simplified.</h2><p class="muted">Your lineup, scheduling pressure, and best possible waiver changes in one place.</p></div>'+
- '<div class="buttonrow">'+button("league",state.manualRoster?"Edit my team":"📷 Import my Yahoo team","primary")+button("waivers","Add waiver players","ghost")+'</div></div>'+
- '<div class="overview-kpis" style="margin-bottom:16px"><div class="overview-kpi"><span>My roster</span><b>'+lineup.length+'</b><span>'+(state.manualRoster?"Locally saved":"Sample, not Yahoo")+'</span></div>'+
- '<div class="overview-kpi"><span>Usable starts</span><b>'+(ready?starters:"—")+'</b><span>Based on real schedule</span></div>'+
- '<div class="overview-kpi"><span>Bench conflicts</span><b class="'+(ready&&conflicts?"down":"")+'">'+(ready?conflicts:"—")+'</b><span>Above daily capacity</span></div></div>'+
- '<div class="strategy-layout"><div class="stack">'+
- card("This week's lineup",'<div class="week-head"><span class="small muted">NBA calendar · '+esc(state.weekStart||weekMonday())+'</span>'+weekControls()+'</div>'+
- (ready?weekHeatmap(days)+'<p class="strategy-note">Green means you have room to stream. Red means some scheduled games are benched by the simplified '+(state.lineupCount||6)+'-starter limit.</p>':scheduleNotice())+
- (ready&&weekInfo.partial?'<p class="strategy-note">Only part of the NBA schedule loaded; totals may be incomplete.</p>':'')+
- '<div class="buttonrow" style="margin-top:12px">'+button("matchups","Open full weekly planner","primary xs")+button("fit","Analyze a specific pickup","ghost xs")+'</div>')+
- card("My roster at a glance",lineup.length?lineup.slice(0,5).map(p=>'<div class="listitem">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+' · '+esc(p.pos)+'</div></div><b>'+f(fp(p))+' FP/G</b></div>').join("")+'<p class="strategy-note">Season averages where loaded; otherwise illustrative sample data. Neither is a guaranteed outcome.</p>':'<div class="empty">No players added yet. Import your Yahoo team to personalize this page.</div>')+
- '</div><div class="stack">'+
- card("Best saved waiver move",(!state.manualRoster?'<div class="note warn" style="margin-bottom:10px">Using the example roster. Import your real team for meaningful advice.</div>':'')+
- (!known?'<div class="empty">No waiver players saved yet. Upload a Yahoo Available Players screenshot first.</div>'+button("waivers","Upload waiver screenshot","primary full"):
- !ready?scheduleNotice():recommendations.length?suggestionCards(recommendations,true):
- '<div class="empty">None of your saved available players have games on this slate.</div>')+
- '<p class="strategy-note" style="margin-top:11px">Only saved available players are considered. Estimates use current season averages where available, otherwise sample stats, and a simplified daily cap.</p>')+
- card("Your next steps",'<div class="listitem">'+button("league","1 · My team","ghost full")+'</div><div class="listitem">'+button("waivers","2 · Available players","ghost full")+'</div><div class="listitem">'+button("matchups","3 · Plan my week","ghost full")+'</div><p class="strategy-note">Yahoo is not connected. HoopIQ does not make roster changes for you.</p>')+'</div></div>';
+ const ready=scheduleReady(),days=ready?scheduleDays():[],team=sampleRoster(),available=chosenWaivers(),moves=ready?addDropSuggestions(2):[];
+ const starts=days.reduce((n,d)=>n+d.used,0),conflicts=days.reduce((n,d)=>n+d.conflicts,0);
+ const start=state.weekStart||weekMonday(),end=weekDate(start,6);
+ let pickContent='';
+ if(!state.manualRoster)pickContent+='<div class="note warn" style="margin-bottom:12px">This is still a demo roster. Import your Yahoo players for personalized advice.</div>';
+ if(!available.length)pickContent+='<p class="small muted">Add a Yahoo available-player screenshot to discover relevant pickups.</p>'+button("waivers","Import available players","primary");
+ else if(!ready)pickContent+=scheduleNotice();
+ else if(moves.length)pickContent+=suggestionCards(moves.slice(0,1),true);
+ else pickContent+='<p class="small muted">Your saved available players have no games in the selected NBA week.</p>';
+ pickContent+='<p class="strategy-note" style="margin-top:12px">Fantasy-point differences are estimates, not guaranteed results.</p>';
+ const hero='<section class="premium-head"><div><div class="eyebrow">'+(state.manualRoster?"YOUR TEAM, IN FOCUS":"START WITH YOUR YAHOO TEAM")+'</div><h1>Your week, made simple.</h1>'+
+ '<p>'+esc(start)+' — '+esc(end)+' · Personalized basketball insights without the clutter.</p>'+
+ '<div class="simple-strip"><span>🏀 '+team.length+' roster players</span><span>✦ '+available.length+' saved waiver targets</span></div></div>'+
+ '<div class="buttonrow">'+button(state.manualRoster?"matchups":"league",state.manualRoster?"Plan my week ↗":"📷 Import my team","primary")+'</div></section>';
+ const stats='<div class="overview-kpis" style="margin-bottom:15px">'+
+ '<div class="overview-kpi"><span>Usable starts</span><b>'+(ready?starts:"—")+'</b><span>NBA calendar</span></div>'+
+ '<div class="overview-kpi"><span>Lineup conflicts</span><b>'+(ready?conflicts:"—")+'</b><span>Beyond daily limit</span></div>'+
+ '<div class="overview-kpi"><span>Open days</span><b>'+(ready?days.filter(d=>d.open>0).length:"—")+'</b><span>Stream opportunities</span></div></div>';
+ const weekCard=card("Your week",'<div class="week-head"><span class="small muted">Live NBA game calendar</span>'+weekControls()+'</div>'+
+ (ready?weekHeatmap(days)+(weekInfo.partial?'<p class="strategy-note">Some NBA dates were unavailable. Results may be incomplete.</p>':''):scheduleNotice())+
+ '<div class="buttonrow" style="margin-top:10px">'+button("matchups","Open weekly planner","primary xs")+'</div>');
+ const rosterCard=card("My team",team.length?team.slice(0,4).map(p=>'<div class="listitem">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+' · '+esc(p.pos)+'</div></div><b>'+f(fp(p))+' FP/G</b></div>').join(""):'<div class="empty">Import your team to see your players.</div>');
+ return hero+stats+'<div class="strategy-layout"><div class="stack">'+weekCard+rosterCard+'</div><div class="stack">'+
+ card("Best saved waiver move",pickContent)+
+ card("Your AI Coach",'<p class="small muted">Ask who fits your roster, where to stream, or whether a pickup makes sense.</p>'+button("coach","Ask HoopIQ ✦","primary full"))+
+ '</div></div>';
 }
 function league(){const rr=roster(),manual=!!state.manualRoster,available=manual?(nbaPlayers.length?nbaPlayers:players):players;return head("My League","Import your team from a screenshot, paste a list, or search players manually.",button("settings","⚙ Edit scoring","ghost xs"))+
 '<div class="grid four" style="margin-bottom:17px">'+metric(manual?"Roster FP/G":"Projected demo week",manual?f(rr.reduce((sum,item)=>sum+fp(item),0)):f(rpts(),0),manual?"Combined season averages":"FP with example schedule","◈")+metric("Roster size",rr.length,manual?"My players":"Sample players","▣")+metric("Player database",available.length,manual?(nbaPlayers.length?"NBA current-season stats":"Example player pool"):"Example player pool","✧")+metric("League","Points","Custom scoring enabled","⚙")+'</div>'+
