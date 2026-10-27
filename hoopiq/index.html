@@ -503,49 +503,45 @@ function waiverImagePanel(){
 }
 
 function waiverFits(){
- const rr=sampleRoster(),weekReady=scheduleReady();
- const chosen=rr.find(p=>p.name===state.fitDrop)||null;
- const all=chosenWaivers().filter(p=>!rr.some(x=>normalizeName(x.name)===normalizeName(p.name)));
- const query=state.search.trim().toLowerCase();
- const filtered=query?all.filter(p=>(p.name+" "+p.team).toLowerCase().includes(query)):all;
- const evaluated=weekReady?filtered.map(p=>({p,calc:computeFit(p,chosen)})):[];
- const order=state.waiverMode||"gain";
- evaluated.sort((a,b)=>order==="usable"?(b.calc.usable-a.calc.usable||b.calc.gain-a.calc.gain):
-  order==="games"?(b.calc.games-a.calc.games||b.calc.gain-a.calc.gain):
-  (b.calc.gain-a.calc.gain||b.calc.usable-a.calc.usable));
- const selections=evaluated.slice(0,30);
- const cardHtml=selections.map(({p,calc})=>
-  '<div class="tradepane"><div class="row">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+' · '+p.pos+' · '+f(fp(p))+' '+(p.source==='real'?'season':'sample')+' FP/G</div></div>'+star(p)+'</div>'+
-  '<div class="grid three" style="margin:14px 0"><div><div class="muted tiny">NET WEEK FP</div><b class="'+(calc.gain>=0?"up":"down")+'">'+(calc.gain>=0?"+":"")+f(calc.gain)+'</b></div><div><div class="muted tiny">USABLE / TOTAL</div><b>'+calc.usable+' / '+calc.games+'</b></div><div><div class="muted tiny">CONFLICTS</div><b class="'+(calc.blocked?"down":"")+'">'+calc.blocked+'</b></div></div>'+
-  '<div class="buttonrow">'+button("pickfit","Inspect schedule fit →","primary xs",'data-id="'+p.id+'"')+button("profile","Player stats","ghost xs",'data-id="'+p.id+'"')+'</div></div>').join("");
- const dropSelect='<select class="select" id="waiverdrop"><option value="">No drop · hypothetical extra roster spot</option>'+
- rr.map(p=>'<option value="'+esc(p.name)+'" '+(chosen?.name===p.name?"selected":"")+'>'+esc(p.name)+'</option>').join("")+'</select>';
- const sortSelect='<select class="select" id="waivermode">'+
- [["gain","Most net fantasy points"],["usable","Most usable starts"],["games","Most NBA games"]].map(x=>'<option value="'+x[0]+'" '+(order===x[0]?"selected":"")+'>'+x[1]+'</option>').join("")+'</select>';
- return head("My Yahoo Waiver Scout","Upload a Yahoo waiver screenshot or paste available names, then compare only the players you approve.",weekControls()+button("fit","Open Pickup Analyzer","primary xs"))+
- '<div class="note blue" style="margin-bottom:16px">Only players you saved as Yahoo available are considered. Refresh your list when Yahoo changes; HoopIQ does not execute transactions.</div>'+
- (weekReady&&weekInfo.partial?'<div class="note warn" style="margin-bottom:16px">Part of the weekly NBA schedule could not be retrieved. Estimates may be incomplete.</div>':"")+
- '<div class="grid three" style="margin-bottom:16px">'+
- metric("Your available players",all.length,"Saved from Yahoo screenshots/list","⌕")+
- metric("Weekly schedule",weekReady?"Loaded":weekInfo.loading?"Loading":"Unavailable","NBA calendar data","▦")+
- metric("Lineup capacity",state.lineupCount||6,"Total starters per day","▣")+'</div>'+
- waiverImagePanel()+'<div style="height:16px"></div>'+
- card("Smart add / drop recommendations",!weekReady?scheduleNotice():!rr.length?
- '<div class="empty">Add your roster to get the best player-to-drop suggestions.</div>'+button("league","Import my roster","primary xs"):
- !all.length?'<div class="empty">Save some players you see on Yahoo Available Players to unlock personalized recommendations.</div>':
- '<p class="muted small">Compares your saved available players against possible drops and ranks changes by playable fantasy points, not raw games.</p>'+
- '<div class="grid two">'+suggestionCards(addDropSuggestions(4),true)+'</div>'+
- '<p class="strategy-note">These are estimated lineup fit improvements, not predicted scores. Manually verify any add/drop on Yahoo.</p>')+
- '<div style="height:16px"></div>'+card("Find the best-fitting pickups",
- '<div class="filterrow"><input class="textinput" id="playersearch" placeholder="Search your saved available players..." value="'+esc(state.search)+'"/>'+sortSelect+'</div>'+
- '<div class="row" style="margin-bottom:14px;flex-wrap:wrap"><label class="muted small" for="waiverdrop">Simulate dropping:</label>'+dropSelect+'</div>'+
- (!chosen?'<div class="note warn" style="margin-bottom:14px">No drop selected. Estimates assume an additional roster spot. If your team is full, choose a drop player for a realistic add/drop comparison.</div>':'')+
- (weekReady?'<div class="grid two">'+cardHtml+'</div>':('<div class="empty">'+(weekInfo.loading?"Getting this week's NBA slate...":esc(weekInfo.error||"Weekly schedule not loaded"))+'</div>'))+
- '<p class="tiny muted" style="margin-top:12px">Real NBA calendar dates and estimated fantasy points from recorded season averages. Position slots, injuries and acquisition limits are not modeled; these are your manually saved available players, not a live Yahoo feed.</p>')+
- '<div style="height:16px"></div>'+card("Improve recommendations",'<p class="muted">Use the same lineup capacity as your Yahoo team. Change your scoring settings to match Yahoo points and keep your manual roster up to date.</p>'+
- '<div class="buttonrow">'+button("fit","Set lineup limits","ghost xs")+button("league","Manage roster","ghost xs")+button("settings","Scoring weights","ghost xs")+'</div>');
+ const rr=sampleRoster(),saved=chosenWaivers(),ready=scheduleReady();
+ const rosterNames=new Set(rr.map(x=>normalizeName(x.name)));
+ const pool=saved.filter(p=>!rosterNames.has(normalizeName(p.name)));
+ const chosen=rr.find(p=>p.name===state.fitDrop)||null,query=(state.search||"").toLowerCase().trim();
+ const filtered=pool.filter(p=>(p.name+" "+p.team).toLowerCase().includes(query));
+ let candidates=[];
+ if(ready){
+  if(chosen)candidates=filtered.map(p=>({p,drop:chosen,calc:computeFit(p,chosen)})).sort((a,b)=>b.calc.gain-a.calc.gain).slice(0,4);
+  else candidates=addDropSuggestions(4).filter(x=>filtered.some(p=>normalizeName(p.name)===normalizeName(x.p.name)));
+ }
+ let html='<div class="pagehead"><div><div class="eyebrow">YOUR NEXT SMART MOVE</div><h1>Waiver wire</h1><p>Find the best add for your actual lineup, not just the biggest name.</p></div>'+
+ '<div class="buttonrow">'+button("openWaiverImport",state.waiverImportOpen?"Close import":"📷 Import available players","primary")+'</div></div>';
+ html+='<div class="overview-kpis" style="margin-bottom:15px"><div class="overview-kpi"><span>Saved candidates</span><b>'+pool.length+'</b><span>Marked by you</span></div>'+
+ '<div class="overview-kpi"><span>NBA week</span><b style="font-size:17px;margin:9px 0 6px">'+(ready?"Loaded":weekInfo.loading?"Loading":"Unavailable")+'</b><span>Real game dates</span></div>'+
+ '<div class="overview-kpi"><span>Roster size</span><b>'+rr.length+'</b><span>Custom points</span></div></div>';
+ if(!state.manualRoster)html+='<div class="note warn" style="margin-bottom:14px">Your team is still the example roster. Import your actual Yahoo players to personalize the recommendations.</div>';
+ if(state.waiverImportOpen||!saved.length)html+=waiverImagePanel()+'<div style="height:15px"></div>';
+ html+=card("Best add / drop options",'<div class="week-head"><span class="small muted">Estimated usable FP this week</span>'+weekControls()+'</div>'+
+ '<div class="row between" style="flex-wrap:wrap;margin-bottom:13px"><label class="small muted" for="waiverdrop">Compare a drop</label>'+
+ '<select class="select" id="waiverdrop" style="max-width:100%;min-width:190px"><option value="">Automatically choose best drop</option>'+
+ rr.map(p=>'<option value="'+esc(p.name)+'" '+(chosen?.name===p.name?"selected":"")+'>'+esc(p.name)+'</option>').join("")+'</select></div>'+
+ (!ready?scheduleNotice():!pool.length?'<p class="small muted">Start by importing Yahoo Available Players. Your personalized options appear here.</p>':
+ candidates.length?'<div class="grid two">'+suggestionCards(candidates,true)+'</div>':
+ '<p class="small muted">No saved available-player candidates have NBA games on this week.</p>')+
+ '<p class="strategy-note" style="margin-top:12px">Only players you explicitly marked available are ranked. Game impact is modeled from season averages or sample fallback data, not guaranteed points.</p>')+
+ '<div style="height:15px"></div>';
+ html+=card("My saved available players",'<div class="filterrow"><input id="playersearch" class="textinput" placeholder="Search your saved players…" value="'+esc(state.search||"")+'" autocomplete="off"/>'+
+ button("openWaiverImport","＋ Add more","ghost xs")+'</div>'+
+ (filtered.length?'<div class="waiver-cleanlist">'+filtered.slice(0,50).map(p=>{
+  const model=ready?computeFit(p,chosen):null;
+  return '<div class="waiver-line">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+' · '+esc(p.pos)+(ready?' · '+model.usable+' usable games':'')+'</div></div>'+
+  '<div class="waiver-metrics"><b>'+(ready?(model.gain>=0?"+":"")+f(model.gain):f(fp(p)))+'</b><small>'+(ready?"Modeled weekly ΔFP":"FP / game")+'</small></div>'+
+  button("pickfit","View","ghost xs",'data-id="'+p.id+'"')+'</div>';
+ }).join("")+'</div>':'<div class="empty">No saved players match yet. Import Yahoo available players or search by name.</div>')+
+ '<p class="strategy-note" style="margin-top:12px">Availability is manually confirmed, not live Yahoo data. Use the import button to update this list.</p>')+
+ '<div style="height:14px"></div>'+
+ card("Want a second opinion?",'<p class="small muted">Ask HoopIQ what a pickup changes, which days to stream, or who to drop.</p>'+button("coach","Ask HoopIQ ✦","primary xs"));
+ return html;
 }
-
 function waivers(){return waiverFits();}
 function matchups(){
  const rosterPlayers=sampleRoster(),ready=scheduleReady(),days=ready?scheduleDays():[];
