@@ -270,8 +270,11 @@ function computeFit(pick,drop){
 }
 function chance(own,opp){const sigma=Math.max(1,0.2*Math.hypot(own,opp));return 100/(1+Math.exp(-1.7*(own-opp)/sigma))}
 function fit(){
- const list=nbaPlayers.length?nbaPlayers:players,actual=sampleRoster();
- const whitelisted=chosenWaivers();const pool=(whitelisted.length?whitelisted:list).filter(p=>!actual.some(x=>normalizeName(x.name)===normalizeName(p.name))&&p.games>0).sort((a,b)=>fp(b)-fp(a));
+ const actual=sampleRoster();
+ const pool=chosenWaivers().filter(p=>!actual.some(x=>normalizeName(x.name)===normalizeName(p.name))).sort((a,b)=>fp(b)-fp(a));
+ if(!pool.length)return head("Pickup Fit Analyzer","Analyze a saved Yahoo waiver player against your existing lineup.",weekControls())+
+ card("Add an available player first",'<div class="empty">Upload a Yahoo Available Players screenshot, paste names, or manually save a player in Waiver Finder. HoopIQ will never assume someone is available just because they are in the NBA database.</div>'+
+ button("waivers","Open Waiver Finder","primary")+' '+button("league","Update my team","ghost"));
  const picked=pool.find(p=>p.id===state.fitPlayer)||pool.find(p=>normalizeName(p.name)==="keyontegeorge")||pool[0];
  const dropped=actual.find(p=>p.name===state.fitDrop);
  const result=computeFit(picked,dropped);
@@ -282,10 +285,10 @@ function fit(){
  const options=pool.map(p=>'<option value="'+p.id+'" '+(p.id===picked?.id?"selected":"")+'>'+esc(p.name)+' ('+esc(p.team)+') · '+f(fp(p))+' FP</option>').join("");
  const rosterOptions=actual.map(p=>'<option value="'+esc(p.name)+'" '+(dropped?.name===p.name?"selected":"")+'>'+esc(p.name)+'</option>').join("");
  const inputs=card("Set up the comparison",
- '<label class="small muted">Potential pickup · Yahoo free-agent status unverified</label><select id="fitplayer" class="select" style="width:100%;margin:8px 0 14px">'+options+'</select>'+
+ '<label class="small muted">Potential pickup · from your saved available list</label><select id="fitplayer" class="select" style="width:100%;margin:8px 0 14px">'+options+'</select>'+
  '<label class="small muted">Player to drop</label><select id="fitdrop" class="select" style="width:100%;margin:8px 14px 14px 0"><option value="">No drop — hypothetical extra spot</option>'+rosterOptions+'</select>'+
  '<div class="row"><label class="small muted">Total active starters per day</label><input id="fitcapacity" class="textinput" type="number" min="1" max="15" style="width:70px" value="'+result.cap+'">'+button("fitcapacity","Set","primary xs")+'</div>'+
- '<p class="tiny muted">Daily lineup optimization uses a simple total player limit, not Yahoo position slots. Your roster is demo data until Yahoo is connected.</p>');
+ '<p class="tiny muted">Daily lineup optimization uses a total player limit, not Yahoo position slots or injuries. Your roster is manually saved and not automatically synced to Yahoo.</p>');
  const intro=card("Why this is different",'<p class="muted">The best pickup is not always the player who has the most games. A four-game player can have fewer usable starts than a three-game player when the rest of your lineup is already playing.</p>'+
  '<div class="statrow"><span>Actual NBA game dates</span><b class="up">✓</b></div><div class="statrow"><span>Daily lineup crowding</span><b class="up">✓</b></div><div class="statrow"><span>Drop vs pickup comparison</span><b class="up">✓</b></div><div class="statrow"><span>Real Yahoo roster and free agents</span><span class="pill demo">Pending</span></div>'+
  button("yahoo","Yahoo connection instructions","ghost xs"));
@@ -300,7 +303,7 @@ function fit(){
  (hasOpp?'<div class="row between" style="margin-top:15px"><div><div class="tiny muted">Before</div><b>'+f(chance(result.oldTotal,opp))+'%</b></div><div><div class="tiny muted">After</div><b class="up">'+f(chance(result.newTotal,opp))+'%</b></div><div><div class="tiny muted">Change</div><b>'+f(chance(result.newTotal,opp)-chance(result.oldTotal,opp))+' pts</b></div></div>':'<div class="note blue" style="margin-top:14px">Add an opponent total for a modeled comparison.</div>')+
  '<p class="muted tiny">Illustration only: assumed 20% weekly volatility and logistic odds approximation. Not calibrated real Yahoo win probabilities.</p>')+'</div>';
  return head("Pickup Fit Analyzer","See which days a potential waiver pickup actually helps, and when your starting lineup is too full.",weekControl)+
- '<div class="note '+(valid?"blue":"warn")+'" style="margin-bottom:16px">'+(valid?"Verified seven-day NBA schedule is loaded. Player fantasy points are season averages; roster and Yahoo availability are still sample/unknown.":weekInfo.loading?"Retrieving the NBA weekly schedule...":esc(weekInfo.error||"NBA schedule not loaded yet"))+'</div>'+
+ '<div class="note '+(valid?"blue":"warn")+'" style="margin-bottom:16px">'+(valid?"NBA schedule loaded. Player estimates use season averages. Yahoo availability and your locally saved roster are not independently verified.":weekInfo.loading?"Retrieving the NBA weekly schedule...":esc(weekInfo.error||"NBA schedule not loaded yet"))+'</div>'+
  '<div class="grid two" style="margin-bottom:16px">'+inputs+intro+'</div>'+
  (valid?'<div class="grid four" style="margin-bottom:16px">'+metric("Net fantasy change",(result.gain>=0?"+":"")+f(result.gain),"Compared to existing lineup","◈")+metric("Scheduled games",result.games,"Actual NBA schedule","▦")+metric("Usable starts",result.usable,"Games in active lineup","✓")+metric("Conflicts",result.blocked,"Would sit on bench","⚠")+'</div>'+analysis:
  card("Schedule not ready",'<p class="muted">Pick another week or try refreshing the NBA schedule.</p>'+button("fitrefresh","Refresh NBA schedule","primary xs")));
@@ -466,7 +469,7 @@ function waiverImagePanel(){
 function waiverFits(){
  const rr=sampleRoster(),weekReady=weekInfo.start===state.weekStart&&weekInfo.games.length>0;
  const chosen=rr.find(p=>p.name===state.fitDrop)||null;
- const all=chosenWaivers().filter(p=>p.games>0&&!rr.some(x=>normalizeName(x.name)===normalizeName(p.name)));
+ const all=chosenWaivers().filter(p=>!rr.some(x=>normalizeName(x.name)===normalizeName(p.name)));
  const query=state.search.trim().toLowerCase();
  const filtered=query?all.filter(p=>(p.name+" "+p.team).toLowerCase().includes(query)):all;
  const evaluated=weekReady?filtered.map(p=>({p,calc:computeFit(p,chosen)})):[];
@@ -484,17 +487,24 @@ function waiverFits(){
  const sortSelect='<select class="select" id="waivermode">'+
  [["gain","Most net fantasy points"],["usable","Most usable starts"],["games","Most NBA games"]].map(x=>'<option value="'+x[0]+'" '+(order===x[0]?"selected":"")+'>'+x[1]+'</option>').join("")+'</select>';
  return head("My Yahoo Waiver Scout","Upload a Yahoo waiver screenshot or paste available names, then compare only the players you approve.",button("fit","Open full Pickup Analyzer","primary xs"))+
- '<div class="note blue" style="margin-bottom:16px">Only players you manually marked as Yahoo available are ranked. This is not automatically synced, so confirm availability on Yahoo before adding anyone.</div>'+
+ '<div class="note blue" style="margin-bottom:16px">Only players you saved as Yahoo available are considered. Refresh your list when Yahoo changes; HoopIQ does not execute transactions.</div>'+
  '<div class="grid three" style="margin-bottom:16px">'+
  metric("Your available players",all.length,"Saved from Yahoo screenshots/list","⌕")+
- metric("Weekly schedule",weekReady?"Loaded":"Loading","Real game dates","▦")+
+ metric("Weekly schedule",weekReady?"Loaded":weekInfo.loading?"Loading":"Unavailable","NBA calendar data","▦")+
  metric("Lineup capacity",state.lineupCount||6,"Total starters per day","▣")+'</div>'+
- waiverImagePanel()+'<div style="height:16px"></div>'+card("Find the best-fitting pickups",
+ waiverImagePanel()+'<div style="height:16px"></div>'+
+ card("Smart add / drop recommendations",!weekReady?scheduleNotice():!rr.length?
+ '<div class="empty">Add your roster to get the best player-to-drop suggestions.</div>'+button("league","Import my roster","primary xs"):
+ !all.length?'<div class="empty">Save some players you see on Yahoo Available Players to unlock personalized recommendations.</div>':
+ '<p class="muted small">Compares your saved available players against possible drops and ranks changes by playable fantasy points, not raw games.</p>'+
+ '<div class="grid two">'+suggestionCards(addDropSuggestions(4),true)+'</div>'+
+ '<p class="strategy-note">These are estimated lineup fit improvements, not predicted scores. Manually verify any add/drop on Yahoo.</p>')+
+ '<div style="height:16px"></div>'+card("Find the best-fitting pickups",
  '<div class="filterrow"><input class="textinput" id="playersearch" placeholder="Search your saved available players..." value="'+esc(state.search)+'"/>'+sortSelect+'</div>'+
  '<div class="row" style="margin-bottom:14px;flex-wrap:wrap"><label class="muted small" for="waiverdrop">Simulate dropping:</label>'+dropSelect+'</div>'+
  (!chosen?'<div class="note warn" style="margin-bottom:14px">No drop selected. Estimates assume an additional roster spot. If your team is full, choose a drop player for a realistic add/drop comparison.</div>':'')+
  (weekReady?'<div class="grid two">'+cardHtml+'</div>':('<div class="empty">'+(weekInfo.loading?"Getting this week's NBA slate...":esc(weekInfo.error||"Weekly schedule not loaded"))+'</div>'))+
- '<p class="tiny muted" style="margin-top:12px">Real dates, estimated fantasy points from recorded season averages. Position slots, injuries, and acquisitions are not modeled; this is not an actual Yahoo free-agent list.</p>')+
+ '<p class="tiny muted" style="margin-top:12px">Real NBA calendar dates and estimated fantasy points from recorded season averages. Position slots, injuries and acquisition limits are not modeled; these are your manually saved available players, not a live Yahoo feed.</p>')+
  '<div style="height:16px"></div>'+card("Improve recommendations",'<p class="muted">Use the same lineup capacity as your Yahoo team. Change your scoring settings to match Yahoo points and keep your manual roster up to date.</p>'+
  '<div class="buttonrow">'+button("fit","Set lineup limits","ghost xs")+button("league","Manage roster","ghost xs")+button("settings","Scoring weights","ghost xs")+'</div>');
 }
