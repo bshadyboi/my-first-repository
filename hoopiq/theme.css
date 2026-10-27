@@ -165,3 +165,9 @@ button:active{transform:scale(.985)}button:focus-visible,input:focus-visible,tex
  .waiver-metrics b{font-size:15px}
 }
 @media(prefers-reduced-motion:reduce){button{transition:none}}
+
+/* Player portrait support: fallback initials remain visible if photos fail. */
+.avatar-photo{position:relative;display:grid;place-items:center;overflow:hidden;min-width:38px;min-height:38px}
+.avatar-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#e5efdc;border-radius:inherit}
+.coach-message.bot .source{color:#729174}
+@media(max-width:610px){.coach-form{position:sticky;bottom:0;background:#fff}.waiver-line{gap:8px}.waiver-line .btn.xs{min-width:40px}}
