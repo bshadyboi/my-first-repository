@@ -171,3 +171,15 @@ button:active{transform:scale(.985)}button:focus-visible,input:focus-visible,tex
 .avatar-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#e5efdc;border-radius:inherit}
 .coach-message.bot .source{color:#729174}
 @media(max-width:610px){.coach-form{position:sticky;bottom:0;background:#fff}.waiver-line{gap:8px}.waiver-line .btn.xs{min-width:40px}}
+
+/* Readable advanced tools (retain all original features, no dark legacy panels). */
+.fitday{background:#f7faf5;border:1px solid #dfe9df;color:#1c4933}
+.fitday b{color:#1f4934}.fitdot{color:#39825b}
+.fitday .muted,.fitday .tiny{color:#7c8d80}
+.fitday .down{color:#d66e56}.fitday .up{color:#277a52}
+.draftrow,.modal,.modal h2,.draftrow b,.draftrow strong{color:#244735}
+.tradepane p,.tradepane .muted{color:#798b7d}
+select option{background:#fff;color:#1d392c}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#d2ded1;border-radius:10px}
+@media(max-width:610px){body{font-size:15px}.btn.xs{font-size:12px}.initial{flex-shrink:0}.pagehead p{font-size:13px}.card h2{font-size:16px}}
