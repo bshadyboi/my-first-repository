@@ -4,6 +4,14 @@ Mobile-first fantasy basketball research, with an installable iPhone PWA.
 
 **Live demo:** https://hoopiq-fantasy-bsb4.vercel.app/
 
+## What's new in the light redesign
+- A calm ivory-and-forest-green theme with larger type, clearer contrast, more space, and responsive iPhone controls.
+- Five primary tabs: **Home, Team, Week, Waivers, AI Coach**; the top-right menu keeps secondary tools accessible.
+- Streamlined roster and free-agent imports: upload a Yahoo screenshot, paste player names, or add them manually. Existing local roster and settings are retained.
+- **Ask HoopIQ:** question-based chat for lineup, streaming, and waiver advice. In default **Built-in strategy mode**, answers are generated locally from saved players, schedule, and add/drop calculations; this is a deterministic tool, not a large language model.
+- Optional natural-language AI backend: `api/coach.js` uses the OpenAI Responses API via the server (not the browser). To enable, set `OPENAI_API_KEY` as a secret in the **hoopiq-fantasy** Vercel project for Production, redeploy, and optionally set `OPENAI_MODEL` (default: `gpt-5.4-mini`). A paid API account and rate limits may apply. **Never paste or commit credentials to GitHub.** Chat questions plus a compact manually-entered roster/waiver context are sent to the AI provider only in this mode; the default built-in mode does not send them.
+- All expected fantasy point gains are illustrative; they do not represent calibrated forecasts or verified Yahoo eligibility.
+
 ## Features
 - Current NBA season averages and game schedules via an unofficial ESPN data source
 - Custom fantasy basketball scoring and rankings
