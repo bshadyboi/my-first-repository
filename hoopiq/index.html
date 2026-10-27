@@ -615,9 +615,9 @@ function coachLocalAnswer(question){
  if(/stream|best day|which day|open day|schedul|when to add|conflict|crowd/.test(q)||namedDay>=0){
   if(!ready)return prefix+"The weekly NBA schedule hasn't loaded yet. Open Week and choose a valid NBA slate; I won't invent game days.";
   const days=scheduleDays(),open=[...days].sort((a,b)=>b.open-a.open||a.conflicts-b.conflicts),day=days[namedDay];
-  const note=day?day.day+" has "+day.open+" open spots and "+day.conflicts+" bench conflicts. ":"";
+  const note=day?day.day+" has "+day.open+" open "+(day.open===1?"spot":"spots")+" and "+day.conflicts+" bench "+(day.conflicts===1?"conflict":"conflicts")+". ":"";
   const candidates=best.filter(x=>namedDay<0||x.calc.days[namedDay]?.used);
-  return prefix+note+"Your most flexible streaming days are "+open.slice(0,3).map(d=>d.day+" ("+d.open+" openings)").join(", ")+". "+(candidates[0]?"From your saved available players, "+candidates[0].p.name+" could add "+f(candidates[0].calc.gain)+" modeled weekly FP with "+candidates[0].calc.usable+" usable starts. ":"Save a Yahoo Available Players screenshot to get specific streaming targets. ")+notice;
+  return prefix+note+"Your most flexible streaming days are "+open.slice(0,3).map(d=>d.day+" ("+d.open+" open "+(d.open===1?"spot":"spots")+")").join(", ")+". "+(candidates[0]?"From your saved available players, "+candidates[0].p.name+" could add "+f(candidates[0].calc.gain)+" modeled weekly FP with "+candidates[0].calc.usable+" usable starts. ":"Save a Yahoo Available Players screenshot to get specific streaming targets. ")+notice;
  }
  if(/drop|cut|bench|replace/.test(q)){
   if(!w.length)return prefix+"I can't recommend a realistic drop without your saved Yahoo available players. Add your available-player list under Waivers and I'll compare specific swaps.";
@@ -626,7 +626,7 @@ function coachLocalAnswer(question){
   if(mentioned){
    const choices=w.filter(p=>!r.some(x=>normalizeName(x.name)===normalizeName(p.name))).map(p=>({p,calc:computeFit(p,mentioned)})).sort((a,b)=>b.calc.gain-a.calc.gain);
    const found=choices[0];
-   if(found)return prefix+"Dropping "+mentioned.name+" for "+found.p.name+" is modeled at "+(found.calc.gain>=0?"+":"")+f(found.calc.gain)+" weekly FP, with "+found.calc.usable+" usable starts and "+found.calc.blocked+" conflicts. "+notice;
+   if(found)return prefix+"Dropping "+mentioned.name+" for "+found.p.name+" is modeled at "+(found.calc.gain>=0?"+":"")+f(found.calc.gain)+" weekly FP, with "+found.calc.usable+" usable starts and "+found.calc.blocked+" lineup "+(found.calc.blocked===1?"conflict":"conflicts")+". "+notice;
   }
   return prefix+(best[0]?"My highest estimated swap is add "+best[0].p.name+" and drop "+best[0].drop?.name+", a "+(best[0].calc.gain>=0?"+":"")+f(best[0].calc.gain)+" weekly FP change. ":"I don't see a clear playable upgrade this week. ")+notice;
  }
