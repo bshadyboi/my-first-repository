@@ -546,6 +546,120 @@ function draft(){const arr=[...players].sort((a,b)=>fp(b)-fp(a));return head("Dr
 '<div class="grid three" style="margin-bottom:16px">'+metric("Available",arr.length-state.drafted.length,"Not yet marked drafted","♛")+metric("Drafted",state.drafted.length,"Selections on this device","✓")+metric("Top FP",f(fp(arr[0])),"Current scoring values","◈")+'</div>'+
 card("Your draft queue",'<div class="note blue" style="margin-bottom:14px">Tap Draft to mark a player as selected. Preferences persist in this browser. Scoring changes instantly adjust the order.</div>'+arr.map((p,i)=>'<div class="draftrow '+(state.drafted.includes(p.id)?"faded":"")+'"><strong class="muted" style="width:24px">'+(i+1)+'</strong>'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="muted tiny">'+p.team+' · '+p.pos+'</div></div><div class="right"><b>'+f(fp(p))+'</b><div class="tiny muted">FP/G</div></div>'+button("draft",state.drafted.includes(p.id)?"Undo":"Draft",state.drafted.includes(p.id)?"ghost xs":"primary xs",'data-id="'+p.id+'"')+'</div>').join(""))}
 function watchlist(){const list=state.watch.map(P).filter(Boolean);return head("Your Watchlist","Track interesting players across rankings and free-agent research.")+card("Saved targets",list.length?list.map(p=>'<div class="listitem">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="muted tiny">'+p.team+' · '+p.pos+'</div></div><b>'+f(fp(p))+' FP</b>'+button("profile","Details","ghost xs",'data-id="'+p.id+'"')+star(p)+'</div>').join(""):'<div class="empty">Nothing saved yet. Tap ☆ next to a player in Rankings or Waivers.</div>')}
+
+let coachAIEnabled=false,coachBusy=false,coachStatusChecked=false;
+async function refreshCoachMode(){
+ try{
+  const r=await fetch("/api/coach",{cache:"no-store"}),j=await r.json();
+  coachAIEnabled=!!(r.ok&&j.aiEnabled);
+ }catch(e){coachAIEnabled=false}
+ coachStatusChecked=true;
+ if(state.view==="coach")render();
+}
+function coachContext(){
+ const rosterList=sampleRoster(),waiverList=chosenWaivers(),ready=scheduleReady();
+ return {
+  weekStart:state.weekStart||weekMonday(),scheduleStatus:ready?(weekInfo.partial?"partial":"loaded"):"unavailable",
+  manualRoster:!!state.manualRoster,manualWaiverList:true,
+  dailyStarterCapacity:Math.max(1,Math.min(15,Number(state.lineupCount)||6)),
+  scoring:state.scoring,
+  roster:rosterList.slice(0,30).map(p=>({name:p.name,team:p.team,pos:p.pos,fpPerGame:+f(fp(p)),statSource:p.source==="real"?"live season":"sample or cached"})),
+  savedAvailablePlayers:waiverList.slice(0,50).map(p=>({name:p.name,team:p.team,pos:p.pos,fpPerGame:+f(fp(p)),statSource:p.source==="real"?"live season":"sample or cached"})),
+  days:ready?scheduleDays().map(d=>({date:d.date,weekday:d.day,open:d.open,used:d.used,conflicts:d.conflicts,modeledPoints:+f(d.points)})):[],
+  suggestedMoves:ready?addDropSuggestions(5).map(({p,drop,calc})=>({add:p.name,drop:drop?.name||null,netFantasyPoints:+f(calc.gain),usableStarts:calc.usable,scheduledGames:calc.games,benchConflicts:calc.blocked})):[]
+ };
+}
+function coachLocalAnswer(question){
+ const q=question.trim().toLowerCase(),ready=scheduleReady(),r=sampleRoster(),w=chosenWaivers();
+ const prefix=!state.manualRoster?"Your roster is still the example team. Import your actual Yahoo roster for personalized advice.\n\n":"";
+ const notice="These are rough estimates from season averages or sample stats, not injury-adjusted forecasts. Verify availability and moves on Yahoo.";
+ const best=ready?addDropSuggestions(5):[];
+ const dayNames=["monday","tuesday","wednesday","thursday","friday","saturday","sunday"];
+ const namedDay=dayNames.findIndex(d=>q.includes(d)||q.includes(d.slice(0,3)));
+ if(!r.length)return "First, add your players under My Team. You can upload Yahoo screenshots or type names. Once your roster is saved, I can compare it against your weekly schedule.";
+ if(/trade|swap deal/.test(q))return prefix+"Your league's trade outcome depends on who you'd send and receive, plus scoring and roster depth. Open Trade Analyzer to test a deal, but its projections are illustrative. Tell me the player names if you want to discuss the roster-fit side.";
+ if(/stream|best day|which day|open day|schedul|when to add|conflict|crowd/.test(q)||namedDay>=0){
+  if(!ready)return prefix+"The weekly NBA schedule hasn't loaded yet. Open Week and choose a valid NBA slate; I won't invent game days.";
+  const days=scheduleDays(),open=[...days].sort((a,b)=>b.open-a.open||a.conflicts-b.conflicts),day=days[namedDay];
+  const note=day?day.day+" has "+day.open+" open spots and "+day.conflicts+" bench conflicts. ":"";
+  const candidates=best.filter(x=>namedDay<0||x.calc.days[namedDay]?.used);
+  return prefix+note+"Your most flexible streaming days are "+open.slice(0,3).map(d=>d.day+" ("+d.open+" openings)").join(", ")+". "+(candidates[0]?"From your saved available players, "+candidates[0].p.name+" could add "+f(candidates[0].calc.gain)+" modeled weekly FP with "+candidates[0].calc.usable+" usable starts. ":"Save a Yahoo Available Players screenshot to get specific streaming targets. ")+notice;
+ }
+ if(/drop|cut|bench|replace/.test(q)){
+  if(!w.length)return prefix+"I can't recommend a realistic drop without your saved Yahoo available players. Add your available-player list under Waivers and I'll compare specific swaps.";
+  if(!ready)return prefix+"I need the NBA week schedule before recommending an add/drop. Open Week and try loading the schedule.";
+  const mentioned=r.find(p=>q.includes(p.name.toLowerCase())||q.includes(p.name.split(" ").pop().toLowerCase()));
+  if(mentioned){
+   const choices=w.filter(p=>!r.some(x=>normalizeName(x.name)===normalizeName(p.name))).map(p=>({p,calc:computeFit(p,mentioned)})).sort((a,b)=>b.calc.gain-a.calc.gain);
+   const found=choices[0];
+   if(found)return prefix+"Dropping "+mentioned.name+" for "+found.p.name+" is modeled at "+(found.calc.gain>=0?"+":"")+f(found.calc.gain)+" weekly FP, with "+found.calc.usable+" usable starts and "+found.calc.blocked+" conflicts. "+notice;
+  }
+  return prefix+(best[0]?"My highest estimated swap is add "+best[0].p.name+" and drop "+best[0].drop?.name+", a "+(best[0].calc.gain>=0?"+":"")+f(best[0].calc.gain)+" weekly FP change. ":"I don't see a clear playable upgrade this week. ")+notice;
+ }
+ if(/add|pick|waiver|best player|who should|recommend|upgrade|target/.test(q)){
+  if(!w.length)return prefix+"Your saved Yahoo available-player list is empty. Go to Waivers → Upload screenshot or paste players. I only recommend players you've marked available.";
+  if(!ready)return prefix+"I've got your available-player list, but I need the NBA week schedule to rank pickups by usable starts.";
+  if(!best.length)return prefix+"None of your saved available players have scheduled games in the loaded week. Try next week or refresh the waiver screenshot.";
+  return prefix+best.slice(0,3).map((x,i)=>(i+1)+". Add "+x.p.name+(x.drop?" / drop "+x.drop.name:"")+" — "+(x.calc.gain>=0?"+":"")+f(x.calc.gain)+" modeled FP, "+x.calc.usable+" usable of "+x.calc.games+" scheduled games.").join("\n")+"\n\n"+notice;
+ }
+ if(/weak|strength|balanced|team|lineup|how am i|how's my/.test(q)){
+  const ordered=[...r].sort((a,b)=>fp(b)-fp(a)),source=ordered[0]?.source==="real"?"current-season":"available";
+  const summary=ordered.slice(0,3).map(x=>x.name+" ("+f(fp(x))+" FP/G)").join(", ");
+  if(!ready)return prefix+"You have "+r.length+" roster players. Your highest "+source+" FP/G contributors are "+summary+". I need a loaded NBA slate to identify crowded days and stream opportunities.";
+  const days=scheduleDays(),bench=days.reduce((t,d)=>t+d.conflicts,0),open=days.filter(d=>d.open>0);
+  return prefix+"Your roster has "+r.length+" players. Top FP/G contributors: "+summary+". Across this week there are "+bench+" modeled bench conflicts, and "+open.length+" days with open lineup slots. "+(best[0]?"A potential improvement is "+best[0].p.name+" for "+best[0].drop?.name+" ("+(best[0].calc.gain>=0?"+":"")+f(best[0].calc.gain)+" FP). ":"Add your saved available-player list for tailored pickup suggestions.")+" "+notice;
+ }
+ return prefix+"I can help you decide who to add or drop, find open streaming days, compare lineup conflicts, and review your roster. "+(ready?"Your current loaded week starts "+(state.weekStart||weekMonday())+" and has "+scheduleDays().filter(d=>d.open>0).length+" days with open starter slots.":"The NBA schedule hasn't loaded yet.")+" Try asking “Who should I add this week?” or “What are my best stream days?”";
+}
+function coach(){
+ const chat=Array.isArray(state.coachHistory)?state.coachHistory.slice(-18):[];
+ const prompts=["Who should I add this week?","What are my best stream days?","Should I drop someone?","How is my lineup?"];
+ const messages=chat.length?chat.map(x=>'<div class="coach-message '+(x.role==="user"?"user":"bot")+'">'+esc(x.text)+(x.role!=="user"?'<span class="source">'+esc(x.source||"Built-in strategy")+'</span>':"")+'</div>').join(""):
+ '<div class="coach-message bot">Hey! I’m your HoopIQ coach. Ask about your fantasy roster, open stream days, or the best players from your saved Yahoo waiver list.<span class="source">Built-in fantasy analysis</span></div>';
+ const mode=coachAIEnabled?'<span class="pill">✦ AI connected</span>':'<span class="pill blue">⌁ Built-in strategy mode</span>';
+ const context=coachContext();
+ return '<div class="pagehead"><div><div class="eyebrow">YOUR FANTASY ASSISTANT</div><h1>Ask HoopIQ <span style="color:#2a9057">✦</span></h1><p>Ask real questions about your roster, waivers, and weekly schedule.</p></div>'+mode+'</div>'+
+ '<div class="coach-shell"><section class="card coach-room"><div class="coach-intro"><div class="coach-mark">✦</div><h2>Let’s make a smarter move.</h2><p>Answers use your saved team, saved free agents, and NBA game dates.</p></div>'+
+ '<div class="coach-chips">'+prompts.map(p=>'<button class="coach-chip" data-action="coachPrompt" data-question="'+esc(p)+'">'+esc(p)+'</button>').join("")+'</div>'+
+ '<div class="coach-messages" id="coachMessages" aria-live="polite">'+messages+(coachBusy?'<div class="coach-message bot">Thinking through your schedule…</div>':"")+'</div>'+
+ '<form id="coachForm" class="coach-form"><input id="coachInput" class="textinput" maxlength="500" autocomplete="off" placeholder="Ask about a pickup or your week…" aria-label="Ask HoopIQ a question" '+(coachBusy?"disabled":"")+'/>'+
+ '<button class="btn primary" type="submit" '+(coachBusy?"disabled":"")+'>Send ↗</button></form></section>'+
+ '<aside class="card pad coach-sidebar"><span class="coach-side-title">Your coaching context</span>'+
+ '<div class="coach-context"><b>'+context.roster.length+'</b><span>Roster players '+(!state.manualRoster?"(example team)":"saved on this device")+'</span></div>'+
+ '<div class="coach-context"><b>'+context.savedAvailablePlayers.length+'</b><span>Saved available players</span></div>'+
+ '<div class="coach-context"><b>'+(scheduleReady()?"7 days":"Not loaded")+'</b><span>NBA week calendar</span></div>'+
+ '<p class="coach-empty">Suggestions are estimates, not guaranteed results. Yahoo is not connected; HoopIQ will never execute roster moves.</p>'+
+ (coachAIEnabled?'<p class="coach-empty">Natural-language AI is enabled through a server-side API. Team context is sent to that service when you ask.</p>':
+ '<p class="coach-empty">Advanced generative AI is not configured yet. Built-in strategy answers work free with your saved data.</p>')+
+ button("clearCoach","Clear conversation","ghost xs")+'</aside></div>';
+}
+async function submitCoachQuestion(text){
+ const question=String(text||"").trim().slice(0,500);
+ if(!question||coachBusy)return;
+ state.coachHistory=Array.isArray(state.coachHistory)?state.coachHistory:[];
+ state.coachHistory.push({role:"user",text:question});
+ state.coachHistory=state.coachHistory.slice(-18);persist();
+ coachBusy=true;if(state.view==="coach")render();
+ let answer="",source="Built-in strategy analysis";
+ if(coachAIEnabled){
+  try{
+   const c=new AbortController(),timer=setTimeout(()=>c.abort(),12000);
+   try{
+    const resp=await fetch("/api/coach",{method:"POST",headers:{"Content-Type":"application/json"},
+     body:JSON.stringify({question,context:coachContext()}),signal:c.signal});
+    const data=await resp.json();
+    if(!resp.ok||!data.ok)throw Error(data.error||"AI offline");
+    answer=String(data.answer||"").slice(0,2200);
+    source="AI-assisted analysis";
+   }finally{clearTimeout(timer)}
+  }catch(e){coachAIEnabled=false;answer="The AI service is unavailable, so here’s my built-in assessment:\n\n"+coachLocalAnswer(question)}
+ }
+ if(!answer)answer=coachLocalAnswer(question);
+ state.coachHistory.push({role:"assistant",text:answer,source});
+ state.coachHistory=state.coachHistory.slice(-18);
+ coachBusy=false;persist();
+ if(state.view==="coach"){render();$("coachMessages")?.scrollTo(0,$("coachMessages").scrollHeight);$("coachInput")?.focus()}
+}
 function settings(){const rows=[["pts","Points"],["reb","Rebounds"],["ast","Assists"],["stl","Steals"],["blk","Blocks"],["tov","Turnovers"],["threes","Made threes bonus"]];return head("Scoring & Settings","Your point values control the rankings, projections, trade estimates and waiver recommendations.")+
 '<div class="grid two">'+card("Custom points scoring",'<p class="muted small">Edit and save your league\'s scoring formula. These are example starting values, not an imported Yahoo preset.</p>'+rows.map(([k,label])=>'<div class="settingsrow"><label for="s-'+k+'">'+label+'</label><input id="s-'+k+'" class="textinput" type="number" step="0.1" data-score="'+k+'" value="'+state.scoring[k]+'"/></div>').join("")+'<div class="buttonrow" style="margin-top:16px">'+button("savescoring","Save scoring","primary")+button("resetscoring","Reset defaults","ghost")+'</div>')+
 card("iPhone app and saved data",'<span class="pill">INSTALLABLE ON IPHONE</span><p class="muted">In Safari, open the hosted site, tap <b>Share → Add to Home Screen</b>, then launch HoopIQ from your iPhone like an app. No App Store required.</p><hr class="separator"/><b>Move your settings between devices</b><p class="muted small">Export your team, watchlist, scoring and draft choices, and import the file on a second device. Automatic syncing requires secure accounts and a backend.</p><div class="buttonrow">'+button("export","↓ Export settings","ghost xs")+button("import","↑ Import settings","ghost xs")+'</div><input id="importfile" type="file" accept=".json,application/json" hidden/><hr class="separator"/><b>Real NBA and Yahoo data</b><p class="muted small">Separate integrations are needed for real stats, news, injury feeds, schedules, Yahoo OAuth, and cross-device syncing.</p>'+button("status","Integration status","ghost xs"))+'</div>'+
@@ -568,6 +682,8 @@ if(a==="status"){state.selected=null;alert("HoopIQ v0.1 is a functional preview 
 if(a==="openRosterImport"){state.importOpen=!state.importOpen;persist();render();return}
 if(a==="openWaiverImport"){state.waiverImportOpen=!state.waiverImportOpen;persist();render();return}
 if(a==="teamManualToggle"){state.manualAddOpen=!state.manualAddOpen;persist();render();return}
+if(a==="coachPrompt"){submitCoachQuestion(el.dataset.question||"");return}
+if(a==="clearCoach"){state.coachHistory=[];persist();render();return}
 if(a==="refreshnba"){updateNBA();updateScores();return}
 if(a==="fitprev"||a==="fitnext"){state.weekStart=weekDate(state.weekStart||weekMonday(),a==="fitnext"?7:-7);persist();loadWeek(true);return}
 if(a==="fitrefresh"){loadWeek(true);return}
@@ -633,6 +749,7 @@ if(a==="resetall"){if(confirm("Reset all settings stored on this device?")){loca
 if(a==="export"){const z={...state};delete z.selected;delete z.view;delete z.menu;delete z.search;const blob=new Blob([JSON.stringify(z,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="hoopiq-settings.json";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Settings exported");return}
 if(a==="import"){$("importfile").click();return}
 });
+document.addEventListener("submit",e=>{if(e.target.id==="coachForm"){e.preventDefault();submitCoachQuestion($("coachInput")?.value||"")}});
 document.addEventListener("change",e=>{const t=e.target;
  if(t.dataset.reviewroster){const id=Number(t.dataset.reviewroster);if(t.checked)imageReview.selected.add(id);else imageReview.selected.delete(id);return}
  if(t.id==="rosterImportMode"){imageReview.replaceRoster=t.value==="replace";return}
@@ -650,6 +767,6 @@ if(t.id==="manualquery"){const caret=t.selectionStart;state.manualQuery=t.value;
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.selected){state.selected=null;render()}});
 render();
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
-updateNBA();updateScores();loadWeek();setInterval(updateNBA,20*60*1000);setInterval(updateScores,60*1000);
+refreshCoachMode();updateNBA();updateScores();loadWeek();setInterval(updateNBA,20*60*1000);setInterval(updateScores,60*1000);
 })();
 </script></body></html>
