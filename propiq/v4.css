@@ -1,0 +1,218 @@
+
+/* PropIQ v4 — faithful nine-screen mobile layout, real-data labels only */
+:root{--base:#020c1a;--panel:#091b2b;--stroke:#1d4059;--mint:#4cefd2;--violet:#b94df2;--coral:#f776a5}
+html,body{background:#020c1a!important;color:#f6fcff}
+body{background:radial-gradient(ellipse 80% 420px at 100% -20%,#21124186,transparent 73%),#020c1a!important}
+.desktop-sidebar{background:#051222!important;border-color:#18344d!important}
+.app-header{height:65px;background:#061524fa!important;border-color:#14354b;padding:0 19px}
+.header-logo{font-size:25px;color:#54e8d8;letter-spacing:-.9px}.header-logo .brand-icon{width:35px;height:35px;border-radius:11px;background:linear-gradient(145deg,#54fbef,#1588d2 65%,#a246f7);box-shadow:0 0 12px #36a5f840}
+.brand-ink{color:#a945ef!important;background:none!important;-webkit-text-fill-color:#a945ef}
+.icon-btn{background:transparent;border:0;color:#dce8fd}.icon-btn svg{width:20px;height:20px}
+.work{background:linear-gradient(160deg,#061322,#020d1b 60%)}.main{max-width:760px;padding:14px 23px 110px}
+.page-title{margin:10px 0 16px}.page-title h1{font-size:28px}.page-title p{font-size:12px;color:#90a8bd}
+.screen .panel{border:1px solid #1d4358;background:#0a1b2e;border-radius:14px}
+.bottom-nav{background:#031320f7!important;border-top:1px solid #1d425a;box-shadow:0 -10px 24px #0008;height:calc(63px + env(safe-area-inset-bottom))}
+.bottom-nav button{color:#90a7bf;font-size:9px;font-weight:650}
+.bottom-nav button .nav-ico{font-size:0;display:grid;place-items:center;width:23px;height:25px}
+.bottom-nav button .nav-ico svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bottom-nav button.active{color:#de70fa!important;filter:drop-shadow(0 0 5px #a340e66a)}
+.side-nav .nav-ico svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8}
+.side-nav.active{background:#251b4c!important;color:#e9c2ff}
+h1,h2,h3{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.55px}
+/* HOME — no oversized splash: match approved Today screen */
+#screen-today>.hero,#screen-today>.sports-pills,#screen-today>.quick-stats,#screen-today>.gradient-card,#screen-today>.section-row{display:none!important}
+.pi-today-title{display:flex;align-items:center;justify-content:space-between;margin:12px 0 15px;gap:10px}
+.pi-title-head{display:flex;align-items:baseline;gap:11px}
+.pi-title-head h1{font-size:25px;margin:0;line-height:1}
+.pi-title-head time{font-size:11px;color:#9aaabe}
+.pi-league{border:1px solid #263b58;border-radius:22px;background:#18243b;color:#f0f8ff;font-size:11px;font-weight:850;padding:9px 14px}
+.pi-today-games{margin-bottom:14px}
+.pi-today-games .game-strip{gap:8px;padding-bottom:0;scrollbar-width:none}
+.pi-today-games .game{flex:0 0 129px;min-width:129px;min-height:78px;border-radius:13px;background:linear-gradient(125deg,#0a3039,#061627);border:1px solid #16495a;padding:10px}
+.pi-today-games .game:nth-child(2n){background:linear-gradient(125deg,#15143b,#07162c);border-color:#272457}
+.pi-today-games .game strong{font-size:14px;margin:7px 0 4px;color:#fff}.pi-today-games .game small{font-size:9px;color:#b1bfcc}
+.pi-top-cta{min-height:85px;width:100%;display:flex;gap:10px;align-items:center;text-align:left;background:linear-gradient(105deg,#1a3458 4%,#3b1c67 70%,#852395);border:1px solid #c65aea;box-shadow:inset 0 0 20px #f777ed25,0 4px 15px #961fff35;border-radius:14px;padding:14px 15px;color:white;margin-bottom:11px}
+.pi-top-cta>span:first-child{font-size:30px}.pi-top-cta>div{flex:1;min-width:0}
+.pi-top-cta h2{font-size:17px;margin:0 0 4px}.pi-top-cta p{font-size:10px;color:#d6ceef;line-height:1.5;margin:0}
+.pi-top-cta .pi-arrow{font-size:30px;color:#fff}
+.pi-top-list{display:flex;flex-direction:column;gap:3px}
+.pi-top-list .prop-row{min-height:82px;display:flex;align-items:center;gap:9px;border-radius:12px;padding:9px 10px;background:linear-gradient(90deg,#0b2339,#07192d);border:1px solid #164052;box-shadow:none}
+.pi-top-list .prop-row:nth-child(even){background:linear-gradient(90deg,#091d31,#07172c)}
+.pi-top-list .prop-rank{align-self:flex-start;flex:0 0 25px;width:25px;height:25px;border-radius:7px;margin-top:2px;background:#273b54;color:#f6fbff;font-size:12px}
+.pi-top-list .avatar,.pi-top-list .avatar.has-photo{width:49px;height:54px;flex:none;background:#213657;border:1px solid #24516a;border-radius:11px;overflow:hidden}
+.pi-top-list .avatar img{height:100%;width:100%;object-fit:cover;object-position:top center;transform:scale(1.12) translateY(5%);display:block}
+.pi-top-list .prop-detail{flex:1;min-width:0;align-self:center}
+.pi-top-list .prop-name{font-size:13px;font-weight:850;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pi-top-list .prop-meta{font-size:9px;color:#a0b4c7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+.pi-top-list .stat-chip{border:0;border-radius:5px;background:#0a4651;color:#b5eff3;padding:4px 6px;font-size:9px}
+.pi-top-list .bubble-mini{border:0;border-radius:5px;background:#0a473e;color:#84f3d1;font-size:9px;padding:4px}
+.pi-top-list .pi-side-extra{display:inline-block;color:#5af1c6;font-size:9px}
+.pi-top-list .prop-value{margin-left:auto;gap:5px;flex:none;text-align:right}
+.pi-top-list .prop-value strong{color:#fff;font-size:17px;letter-spacing:-.5px}
+.pi-top-list .side-mark{background:#4bebcb;border:0;border-radius:6px;color:#07312b;padding:7px;font-size:10px;font-weight:900}
+.pi-top-list .side-mark.under{background:#f777a9;color:#39091a}
+.pi-top-list .prop-value small{color:#7fc8b6;font-size:9px}
+.pi-footnote{margin:12px 4px 15px;color:#8499af;font-size:10px;line-height:1.6}
+#scoutSpotlight .pvt-scouter{border-color:#215670;background:#07192c;box-shadow:none}
+#screen-today .pvt-scouter .pvt-line{font-size:24px}
+/* MARKET — real dense list with screenshot-matching four columns */
+#screen-market .page-title .overline,#screen-market .page-title p{display:none}
+#screen-market .page-title{margin:12px 0 15px}
+#screen-market .page-title h1{font-size:23px;margin:0;letter-spacing:-.8px}
+.pi-small-down{font-size:15px;color:#6f87a7}
+#screen-market .search-field input{background:#102337;border:1px solid #18364c;border-radius:22px;height:43px;font-size:11px;color:white;padding-left:43px}
+#marketChips{gap:6px;padding:12px 0 10px}
+#marketChips .pill{background:#14263b;border:1px solid #253953;border-radius:22px;font-size:10px;font-weight:800;color:#d2dbe8;padding:10px 13px}
+#marketChips .pill.active{background:linear-gradient(115deg,#7342e8,#a041e7);color:#fff;border-color:#9f56ed}
+#marketMode{background:transparent;border:0;border-bottom:1px solid #18364a;border-radius:0;padding:0;gap:10px}
+#marketMode button{background:transparent!important;border:0;border-bottom:2px solid transparent;min-height:37px;color:#95a9c1;font-size:11px;border-radius:0;padding:8px 4px}
+#marketMode button.active{color:#d99bfc;border-color:#b651ee}
+#screen-market .market-controls{margin:8px 0;gap:7px}
+#screen-market .market-controls select{border:1px solid #20374f;background:#0d1d32;font-size:10px;color:#acc4d4;padding:8px;border-radius:8px}
+#marketStatus{font-size:9px;line-height:1.6;color:#8fa6bd;margin:8px 0}
+.pi-table-head{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(42px,.55fr) minmax(49px,.65fr) minmax(49px,.65fr);gap:5px;padding:9px 6px;border-bottom:1px solid #28445c;font-size:10px;color:#adc3d4}
+.pi-table-head>span:not(:first-child){text-align:center}
+.pi-market-row{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(42px,.55fr) minmax(49px,.65fr) minmax(49px,.65fr);gap:5px;align-items:center;background:#061626;min-height:69px;padding:7px 6px;border-bottom:1px solid #173346;cursor:pointer}
+.pi-market-row:nth-child(odd){background:#071d2d}.pi-market-row:hover{background:#102b41}
+.pi-player{min-width:0;display:flex;align-items:center;gap:7px}
+.pi-player img,.pi-player .pi-initials{flex:none;width:37px;height:44px;object-fit:cover;object-position:top;border-radius:9px;background:#18354d;border:1px solid #225369}
+.pi-player .pi-initials{display:grid;place-items:center;color:#83dfe1;font-size:11px;font-weight:850}
+.pi-player-data{min-width:0}.pi-player-data strong{font-size:11px;font-weight:850;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pi-player-data small{font-size:9px;color:#9db2c7;display:block;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.pi-line{text-align:center;color:#f8faff;font-size:14px;font-weight:900}.pi-line small{font-size:9px;display:block;color:#9fb0c4;font-weight:700;margin-top:3px}
+.pi-odds{text-align:center;font-size:9px;font-weight:900;color:#69f3d1;background:#0a3c40;border:0;border-radius:7px;padding:7px 2px}
+.pi-odds small{font-size:9px;color:#7ee8d4;margin-top:2px;display:block}
+.pi-odds.lower{color:#ff9ab9;background:#3d1b33}.pi-odds.lower small{color:#f2a3c2}
+.pi-hit{text-align:center;color:#56ecc3;font-size:12px;font-weight:900}.pi-hit small{color:#a8d0b8;font-size:9px;display:block;font-weight:700}
+#screen-market .disclosure{font-size:10px}
+/* PLAYER — exactly compact headshot, tabs, stat selection, hit rates, bar chart */
+#screen-player .backline{margin:0 0 7px;color:#8fa4b7;font-size:9px}
+#screen-player .backline button{background:transparent;border:0;color:#f9fcff;font-size:22px;padding:6px}
+#screen-player .player-hero{background:linear-gradient(112deg,#0b2036,#041627);border:0;border-radius:0;box-shadow:none;margin:0 -5px;gap:13px;padding:4px 9px 14px;min-height:141px}
+#screen-player .player-avatar,#screen-player .player-avatar.has-photo{height:137px!important;width:110px!important;background:#17334a;border:0;border-radius:10px 10px 0 0;overflow:hidden;flex:none}
+#screen-player .player-avatar img{height:100%;width:100%;object-fit:cover;object-position:top;transform:scale(1.06) translateY(2%)}
+#screen-player .player-hero h1{font-size:24px;margin:5px 0 7px;line-height:1.1}
+#screen-player .player-hero .overline{font-size:10px;color:#8ae0e8}
+#screen-player .dimmed{font-size:10px;color:#acc2d3}
+#screen-player .detail-tabs{margin:8px 0 11px;gap:2px;border-bottom:1px solid #1c3448}
+#screen-player .detail-tabs button{font-size:10px;background:transparent!important;border:0;border-radius:0;padding:11px 12px;box-shadow:none;color:#99acc2}
+#screen-player .detail-tabs button.active{color:#dc94ff;border-bottom:2px solid #b34ef2}
+#screen-player .line-card{border:0;background:#07182b;padding:8px 0 12px;margin:0;border-radius:11px}
+#screen-player .line-top{padding:0 6px 9px}
+#screen-player .line-top small{font-size:9px}
+#screen-player #playerLineLabel{font-size:28px}
+#screen-player .stepper button{border-radius:8px;background:#132a44;border:1px solid #2b4a66;height:34px;width:34px}
+#screen-player .overunder{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;border-radius:11px;background:#092239;margin:0;padding:5px}
+#screen-player .overunder button{border:0;background:#0e2034;border-radius:8px;font-size:12px;font-weight:900;padding:12px 5px}
+#screen-player .overunder #playerHigher.active{background:#4af5d0;color:#022c2d;box-shadow:none}
+#screen-player .overunder #playerLower.active{background:#ed70ab;color:#3d0a2d;box-shadow:none}
+#screen-player .odds-foot{font-size:9px;color:#9bb4c9;margin:9px 4px 0}
+#screen-player .metrics-row{gap:5px;margin:8px 0}
+#screen-player .hit-tile{padding:10px 4px;background:#0a3335;border:0;border-radius:8px}
+#screen-player .hit-tile strong{font-size:20px;color:#59f6cf;margin:4px 0}
+#screen-player .hit-tile small,#screen-player .hit-tile span{font-size:9px}
+#screen-player .chart-panel{border-radius:12px;background:#061b2b;border:0;padding:12px}
+#screen-player .chart-panel .section-row{margin:2px 0 10px}
+#screen-player .chart-panel h3{font-size:13px}
+#screen-player .chart-panel .section-row p{font-size:9px}
+#screen-player .profile-bars{min-height:200px;height:200px;gap:4px}
+#screen-player .bar-col{height:168px;min-width:19px;font-size:9px}
+#screen-player .bar-rect{max-width:30px}
+#screen-player .premium-panel{background:#081b2e;border:1px solid #15455c;border-radius:12px}
+#screen-player .premium-tile{border-color:#205463;background:#092232}
+#screen-player #playerContext{background:linear-gradient(110deg,#190f33,#0a2333);border-color:#5d3583;border-radius:13px;padding:15px}
+#screen-player #playerContext h3{color:#e1b9ff}
+/* COMPARE — one row per actual platform, no fake main DFS */
+#screen-compare .page-title h1{font-size:27px}
+.pi-compare-head{display:flex;align-items:center;gap:11px;border:1px solid #18374e;border-radius:13px;background:#0b2033;padding:12px}
+.pi-compare-head img{width:56px;height:63px;border-radius:11px;object-fit:cover;object-position:top;border:1px solid #225570}
+.pi-compare-head strong{font-size:14px;display:block}.pi-compare-head small{font-size:10px;color:#92adc4;display:block;margin-top:5px}
+.pi-compare-market{border:1px solid #1c3c56;border-radius:13px;background:#071a2b;padding:12px;margin:12px 0}
+.pi-compare-market .pi-table-head{grid-template-columns:1.25fr .4fr 1fr}
+.pi-compare-book{display:grid;grid-template-columns:1.25fr .4fr 1fr;gap:6px;align-items:center;padding:12px 0;border-bottom:1px solid #153448}
+.pi-compare-book:last-child{border:0}
+.pi-book-title{display:flex;align-items:center;gap:7px;min-width:0}.pi-book-title strong{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pi-book-mark{width:24px;height:24px;flex:none;display:grid;place-items:center;border-radius:6px;background:linear-gradient(120deg,#8448e6,#15afa9);color:#fff;font-size:12px;font-weight:950}
+.pi-threshold{font-size:12px;font-weight:900;color:#fff;text-align:center}
+.pi-sides{display:flex;justify-content:end;gap:4px}.pi-sides span{padding:7px 4px;border:1px solid #244764;background:#102b42;border-radius:7px;min-width:44px;text-align:center;color:#dbf6ff;font-size:10px}.pi-sides b{display:block;color:#8aa5b7;font-size:9px;margin-top:3px}
+.pi-best{padding:13px;border:1px solid #19cda9;border-radius:11px;background:#063437}.pi-best h3{margin:0 0 4px;color:#55f0c4;font-size:13px}.pi-best p{color:#d0f4ed;font-size:11px;margin:0}
+/* ASK — branded helper, chat bubbles and prompt chips */
+#screen-ask .page-title{display:none}
+.pi-ask-heading{display:flex;gap:10px;align-items:center;margin:10px 0 20px}
+.pi-small-logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(#4debd4,#138bcf);color:#042b3a;font-size:24px;font-weight:1000;display:grid;place-items:center}
+.pi-ask-heading h1{margin:0;font-size:18px}.pi-ask-heading p{margin:4px 0 0;color:#809db5;font-size:10px}
+#screen-ask .assistant-banner{border:1px solid #204059;border-radius:13px;background:#102238;padding:17px;text-align:left}
+#screen-ask .assistant-orb{display:none}
+#screen-ask .assistant-banner strong{font-size:13px}
+#screen-ask .assistant-banner p{font-size:11px;line-height:1.65;color:#c2d2e3}
+#screen-ask .messages{max-height:405px;min-height:210px;gap:13px;padding:0 0 12px}
+#screen-ask .message{font-size:12px;padding:12px 14px}
+#screen-ask .message.assistant{background:#10243a;border:1px solid #234057;border-radius:7px 14px 14px 14px}
+#screen-ask .message.user{background:linear-gradient(110deg,#8344f0,#ac3de5);border-radius:14px 14px 5px 14px;max-width:80%}
+#screen-ask .prompt-wrap button{border-color:#20536c;background:#0b263a;color:#c9e6f1}
+#screen-ask .chat-input{border:1px solid #243e55;background:#102338;border-radius:12px}
+#screen-ask .chat-input button{height:35px;width:35px;border-radius:50%;padding:0;background:linear-gradient(115deg,#984cff,#bc44ef)}
+/* Slip, tracker, explore, profile */
+#screen-slip .page-title h1,#screen-picks .page-title h1,#screen-explore .page-title h1{font-size:26px}
+#screen-slip .upload-area{border:1px dashed #b25ced;background:linear-gradient(125deg,#18123a,#09233b);border-radius:14px;min-height:168px;padding:26px 15px}
+#screen-slip .upload-icon{color:#d389ff;font-size:33px}
+#screen-slip .form-grid input,#screen-slip .form-grid select{border-radius:9px;background:#07192b}
+#screen-picks .tabs{background:#07192b;border:1px solid #1b384e;border-radius:22px}
+#screen-picks .tabs button{min-height:36px;border-radius:19px}
+#screen-picks .tabs button.active{background:linear-gradient(110deg,#8f47f3,#a63de6)}
+#screen-picks .pick-item{background:#0b2437;border:1px solid #17455d;border-radius:12px;padding:12px;position:relative}
+#screen-picks .pick-item .side-mark{background:#43edce;color:#04302d}
+#screen-picks .pick-item .side-mark.under{background:#f07ba8;color:#3a122f}
+.pi-pick-photo{float:left;margin-right:10px;width:43px;height:47px;overflow:hidden;border-radius:9px;background:#14334a;border:1px solid #225671}
+.pi-pick-photo img{width:100%;height:100%;object-fit:cover;object-position:top}
+#screen-explore .explore-grid{gap:10px}
+#screen-explore .explore-tile{border-radius:14px;border:1px solid #274c78;min-height:134px;box-shadow:inset 0 0 24px #0003;padding:16px}
+#screen-explore .explore-tile strong{font-size:13px}
+#screen-profile .panel{background:#0b2033}
+@media(min-width:900px){.main{max-width:700px;margin:0 auto;padding:22px 30px 110px}.pi-today-games .game{min-width:150px;flex-basis:150px}}
+@media(max-width:720px){
+ .desktop-sidebar{display:none}
+ .main{padding:11px 12px calc(95px + env(safe-area-inset-bottom))}
+ .app-header{height:60px;padding:0 14px}
+ .header-logo{font-size:23px}
+ .pi-today-title{margin:8px 0 12px}
+ .pi-title-head h1{font-size:23px}
+ .pi-title-head time{font-size:10px}
+ .pi-today-games .game{min-width:114px;flex-basis:114px;min-height:73px;padding:8px}
+ .pi-today-games .game strong{font-size:13px}
+ .pi-top-cta{min-height:78px;padding:12px}
+ .pi-top-cta h2{font-size:15px}
+ .pi-top-cta p{font-size:9px}
+ .pi-top-list .prop-row{min-height:75px;gap:7px;padding:8px}
+ .pi-top-list .prop-rank{flex-basis:23px;width:23px;height:23px}
+ .pi-top-list .avatar,.pi-top-list .avatar.has-photo{width:43px;height:49px}
+ .pi-top-list .prop-name{font-size:12px}
+ .pi-top-list .prop-meta{font-size:9px}
+ .pi-top-list .prop-value strong{font-size:14px}
+ .pi-top-list .side-mark{padding:6px;font-size:9px}
+ .pi-market-row{min-height:64px}
+ .pi-player{gap:6px}
+ .pi-player img,.pi-player .pi-initials{width:34px;height:40px}
+ .pi-player-data strong{font-size:10px}
+ .pi-line{font-size:13px}
+ .pi-odds{font-size:9px}
+ .pi-hit{font-size:11px}
+ #screen-player .player-avatar,#screen-player .player-avatar.has-photo{width:100px!important;height:125px!important}
+ #screen-player .player-hero h1{font-size:21px}
+ #screen-player .detail-tabs button{font-size:9px;padding:9px 8px}
+ #screen-ask .messages{max-height:360px}
+ #screen-explore .explore-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:350px){.main{padding-left:8px;padding-right:8px}.pi-top-list .prop-row{gap:5px}.pi-top-list .avatar{width:39px!important;height:45px!important}.pi-player{gap:4px}.pi-table-head,.pi-market-row{grid-template-columns:minmax(0,1.65fr) minmax(40px,.6fr) minmax(45px,.65fr) minmax(45px,.65fr)}}
+
+.pi-category-discovery{margin:10px 0 19px;padding:12px 0 0;border-top:1px solid #1a354d}
+.pi-category-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.pi-category-heading strong{font-size:12px;font-weight:850;color:#ebfaff}
+.pi-category-heading span{font-size:10px;color:#89a2b7}
+.pi-category-scroll{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:2px 0 9px}
+.pi-category-scroll button{flex:none;background:#112d3e;border:1px solid #275063;border-radius:20px;color:#c3eaf0;padding:9px 12px;font-size:10px;font-weight:850;display:flex;gap:8px;align-items:center}
+.pi-category-scroll button:hover{background:#173d50;border-color:#4ccde0}
+.pi-category-scroll button small{font-size:9px;color:#6aead7;background:#0a4a46;border-radius:7px;padding:4px 6px}
+
+.pi-player-data .pi-dfs-source{color:#88d9db;font-size:9px}
+.pi-odds:has(small){min-width:0}

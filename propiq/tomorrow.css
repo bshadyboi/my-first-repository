@@ -1,0 +1,15 @@
+
+.tomorrow-nav{display:flex;align-items:stretch;gap:7px;margin:8px 0 6px;max-width:100%}
+.tomorrow-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;flex:1}
+.tomorrow-tabs button{text-align:left;border:1px solid #29415f;border-radius:12px;background:#0e2235;color:#93b0c7;padding:10px 14px;min-width:0}
+.tomorrow-tabs button span{display:block;font-weight:900;font-size:13px;color:#c3d8e8}
+.tomorrow-tabs button small{display:block;font-size:10px;margin-top:4px;color:#8aadc0}
+.tomorrow-tabs button.active{background:linear-gradient(115deg,#29265a,#0a3e4c);border-color:#6b68d9;box-shadow:inset 2px 0 #4ee9c8,0 0 12px #4945c526}
+.tomorrow-tabs button.active span{color:#72f8df}
+.tomorrow-tabs button.active small{color:#a9dada}
+.tomorrow-refresh{flex:0 0 38px;min-width:38px;border:1px solid #2d5873;border-radius:12px;background:#10283d;color:#83e8d5;font-size:22px}
+.tomorrow-refresh:disabled{opacity:.5}
+.tomorrow-status{font-size:10px;color:#8cacc0;margin:8px 0 12px;line-height:1.6}
+@media(max-width:720px){.tomorrow-nav{gap:5px}.tomorrow-tabs{gap:5px}.tomorrow-tabs button{padding:10px 11px}.tomorrow-tabs button span{font-size:12px}.tomorrow-tabs button small{font-size:9px}.tomorrow-refresh{min-width:34px;flex-basis:34px}}
+
+.pick-game-date{display:inline-block;margin-top:5px;color:#78e5d7;font-size:10px;font-weight:800;letter-spacing:.1px}

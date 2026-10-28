@@ -1,0 +1,23 @@
+
+/* PLAYER RESEARCH LAB — approved premium navy / mint / violet design */
+.research-lab{background:linear-gradient(145deg,#0a2034,#071727);border:1px solid #275673;border-radius:14px;padding:15px;margin:13px 0;color:#e6f4fb}
+.rl-title{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-bottom:12px}.rl-title h3{font-size:16px;margin:4px 0 0;line-height:1.2}.rl-eyebrow{letter-spacing:1.4px;font-size:9px;color:#6bdce3;font-weight:950}.rl-live{font-size:9px;letter-spacing:0;color:#56e5c7;margin-left:6px;white-space:nowrap}
+.rl-source{font-size:9px;color:#89aac0;white-space:nowrap}
+.rl-control{margin:9px 0}.rl-label{font-size:10px;font-weight:850;color:#a3bacf;margin:0 0 6px}
+.rl-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.rl-chips button{background:#142b43;border:1px solid #274661;color:#c0d7e9;border-radius:9px;padding:9px 12px;font-size:10px;font-weight:900;white-space:nowrap}.rl-chips button.active{background:linear-gradient(110deg,#6740d4,#9544dc);border-color:#9d65ed;color:#fff}.rl-chips button:disabled{opacity:.37;cursor:not-allowed}
+.rl-seasonbar{display:flex;justify-content:space-between;align-items:center;gap:6px;margin:11px 0;color:#88a9bc;font-size:9px}
+.rl-seasonbar span{flex:1}.rl-seasonbar select{background:#112a3e;color:#d1ebf6;border:1px solid #2a536d;border-radius:8px;padding:8px 7px;min-width:113px;max-width:50%;font-size:10px}
+.rl-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}.rl-stat{padding:12px 6px;text-align:center;background:#0c2f3d;border:1px solid #276877;border-radius:10px}.rl-stat strong{display:block;color:#61e9cd;font-size:20px;line-height:1.2;font-family:'Space Grotesk',sans-serif}.rl-stat small{font-size:9px;color:#acc3cc;display:block;margin-top:5px;line-height:1.4}
+.rl-chartcard{background:#061626;border:1px solid #194a66;border-radius:12px;padding:12px 10px}
+.rl-chartheading{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:7px}.rl-chartheading strong{font-size:12px}.rl-chartheading small{font-size:9px;color:#a6bed2}
+.rl-chart{height:186px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#33576c transparent}.rl-bars{height:161px;display:flex;align-items:end;gap:5px;border-bottom:1px solid #32576b;position:relative;padding:0 4px}.rl-threshold{position:absolute;left:0;right:0;z-index:1;border-top:1px dashed #ffe0a9;pointer-events:none}.rl-threshold span{position:absolute;right:1px;bottom:2px;color:#ffdbaa;font-size:8px;background:#071627b8;padding:1px 4px}
+.rl-bar{height:100%;border:0;background:transparent;min-width:29px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:end;gap:3px;color:#b8c9d6;padding:0;position:relative;z-index:2}
+.rl-bar b{font-weight:850;font-size:10px;color:#e9f6fd;text-shadow:0 1px 3px #0009}.rl-bar i{width:75%;max-width:25px;min-height:3px;display:block;border-radius:4px 4px 0 0;opacity:.97}
+.rl-bar i.hit{background:linear-gradient(#48eaca,#159ca8)}.rl-bar i.miss{background:linear-gradient(#fb8aa7,#ae476c)}.rl-bar i.push{background:#ffd48e}
+.rl-bar small{position:absolute;top:100%;font-size:8px;white-space:nowrap;color:#94aabd}
+.rl-bar:focus-visible{outline:2px solid #56efcf;outline-offset:2px}.rl-empty{display:grid;place-items:center;height:100%;font-size:11px;color:#a0afc8;text-align:center}
+.rl-bar-note{font-size:10px;color:#8ed8cd;margin-top:8px;line-height:1.5}
+.rl-minute{margin:11px 0 5px;display:flex;justify-content:space-between;align-items:center;gap:13px}.rl-minute h4{font-size:13px;margin:4px 0 0;color:#e7f5ff;white-space:nowrap}
+.rl-min-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;flex:1}.rl-min-stats span{text-align:center;border-radius:8px;background:#0a2d3d;padding:8px 4px}.rl-min-stats strong{font-size:16px;color:#59f1d4;display:block}.rl-min-stats small{font-size:8px;color:#a1b4c8;line-height:1.3;display:block}
+.rl-foot{font-size:10px;line-height:1.65;color:#859db5;margin:12px 0 1px}
+@media(max-width:720px){.research-lab{padding:12px 10px}.rl-title h3{font-size:14px}.rl-live{font-size:8px}.rl-source{font-size:8px}.rl-stat{padding:9px 4px}.rl-stat strong{font-size:17px}.rl-stat small{font-size:8px}.rl-chips button{padding:9px 11px}.rl-min-stats strong{font-size:15px}.rl-minute{gap:7px}.rl-minute h4{font-size:12px}.rl-chart{height:190px}}
