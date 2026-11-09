@@ -7,7 +7,7 @@ assert(match.length >= 1, "Main inline app script missing");
 for(const m of match) if(m[1].trim()) new vm.Script(m[1],{filename:"hoopiq/index-inline.js"});
 const source = fs.readFileSync("hoopiq/matchup-hq.js","utf8");
 new vm.Script(source,{filename:"hoopiq/matchup-hq.js"});
-const window = {};
+const window = {HoopIQLineup:require("../lineup-slots.js")};
 vm.runInNewContext(source,{window});
 const api = window.HoopIQMatchup;
 assert(api && typeof api.renderOpponent==="function" && typeof api.renderMatchup==="function");
@@ -25,7 +25,7 @@ const state={opponent:"Rival",opponentRoster:[],opponentManual:false,opponentQue
 const review={target:"opponent",names:[{id:2,name:"Two Player",team:"ATL"}],selected:new Set([2]),replaceRoster:false,error:"",preview:"",busy:false};
 const button=(action,label)=>'<button data-action="'+action+'">'+label+'</button>';
 const card=(title,inner)=>'<section><h2>'+title+'</h2>'+inner+'</section>';
-const ctx={state,imageReview:review,nbaPlayers:athletes,players:athletes,P:id=>athletes.find(p=>p.id===Number(id)),
+const ctx={state,imageReview:review,renderLineup:()=>card("Saved opponent roster","Lineup slots"),lineupCapacity:()=>10,currentLineupSlots:()=>window.HoopIQLineup.DEFAULT,nbaPlayers:athletes,players:athletes,P:id=>athletes.find(p=>p.id===Number(id)),
   normalizeName:name=>name.toLowerCase().replace(/\s+/g,""),esc:value=>String(value==null?"":value).replace(/&/g,"&amp;").replace(/</g,"&lt;"),
   button,card,icon:p=>'<span>'+p.name+'</span>',f:(x,n=1)=>Number(x).toFixed(n),
   fp:p=>p.pts+p.reb*1.2+p.ast*1.5+p.stl*3-p.tov,weekDate:(s,n)=>new Date(Date.parse(s+"T12:00:00Z")+n*86400000).toISOString().slice(0,10),

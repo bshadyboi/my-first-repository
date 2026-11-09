@@ -30,16 +30,13 @@ function renderOpponent(c){
   const choices=(nbaPlayers.length?nbaPlayers:players).filter(p=>!(state.opponentRoster||[]).includes(p.id)&&(!query||(p.name+" "+p.team).toLowerCase().includes(query))).slice(0,80);
   html+=card("Add a player manually",'<label class="muted small" for="opponentQuery">Search NBA players</label><input id="opponentQuery" class="textinput" autocomplete="off" placeholder="Find a player…" style="display:block;width:100%;margin:8px 0" value="'+esc(state.opponentQuery||"")+'"><select id="addopponent" class="select" style="width:100%"><option value="">Select player to add…</option>'+choices.map(p=>'<option value="'+p.id+'">'+esc(p.name)+' · '+esc(p.team)+'</option>').join("")+'</select>')+'<div style="height:14px"></div>';
  }
- html+=card("Saved opponent roster ("+rr.length+")",rr.length?
-  rr.map(p=>'<div class="waiver-line">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+' · '+esc(p.pos)+'</div></div><div class="waiver-metrics"><b>'+(p.statsUnavailable?'—':f(fp(p)))+'</b><small>'+(p.statsUnavailable?'No season stats':'FP/G*')+'</small></div>'+button("opponentRemove","×","ghost xs",'data-id="'+p.id+'" aria-label="Remove '+esc(p.name)+'"')+'</div>').join("")+
-  '<p class="strategy-note">*Based on season averages when available; otherwise illustrative fallback data.</p>':
-  '<div class="empty">No opponent players yet. Upload their roster screenshot or add names manually.</div>');
+ html+=c.renderLineup("opponent");
  html+='<div class="hq-cta">'+button("matchup","⚔ Compare our teams","primary")+button("league","Edit my team","ghost")+'</div>';
  return html;
 }
 function snapshot(c,list){
  const {state,weekDate,weekGame,fp}=c;
- const cap=Math.max(1,Math.min(15,Number(state.lineupCount)||6)),categories={pts:0,reb:0,ast:0,stl:0,blk:0,tov:0};
+ const cap=c.lineupCapacity(),categories={pts:0,reb:0,ast:0,stl:0,blk:0,tov:0};
  let games=0,starts=0,blocked=0,points=0;
  const daily=[];
  for(let i=0;i<7;i++){
@@ -54,7 +51,7 @@ function snapshot(c,list){
 }
 function renderMatchup(c){
  const {state,esc,button,card,sampleRoster,scheduleReady,scheduleNotice,weekControls,f,weekInfo,addDropSuggestions,suggestionCards}=c;
- const own=state.manualRoster?sampleRoster():[],opp=state.opponentManual?opponentPlayers(c):[];
+ const own=state.manualRoster?sampleRoster().filter(p=>(state.rosterPositions||{})[p.id]!=="IL"):[],opp=state.opponentManual?opponentPlayers(c).filter(p=>(state.opponentPositions||{})[p.id]!=="IL"):[];
  const haveOwn=own.length>0,haveOpp=opp.length>0;
  const header='<div class="pagehead"><div><div class="eyebrow">YOUR WEEKLY GAME PLAN</div><h1>⚔ Matchup HQ</h1><p>Both teams, weekly points, lineup conflicts, and the waiver move that fits your schedule.</p></div><div class="buttonrow">'+weekControls()+'</div></div>';
  if(!haveOwn||!haveOpp)return header+'<div class="hq-steps"><span class="'+(haveOwn?"done":"")+'">1 · My Team</span><span class="'+(haveOpp?"done":"")+'">2 · Opponent</span><span>3 · Matchup HQ</span></div>'+
@@ -91,10 +88,10 @@ function renderMatchup(c){
  '<div class="empty">Import players you confirmed are available in Yahoo to generate add/drop comparisons. We won\'t assume everyone is on waivers.</div><div class="hq-cta">'+button("waivers","Import available players","primary")+'</div>')+
  card("Matchup opportunities",'<div class="statrow"><span>Scheduled games advantage</span><b>'+((mine.games-other.games)>=0?"+":"")+(mine.games-other.games)+'</b></div>'+
  '<div class="statrow"><span>Your bench conflicts</span><b>'+mine.blocked+'</b></div>'+
- '<div class="statrow"><span>Your open weekly starter slots</span><b>'+mine.daily.reduce((n,d)=>n+Math.max(0,Math.max(1,Math.min(15,Number(state.lineupCount)||6))-d.starts),0)+'</b></div>'+
+ '<div class="statrow"><span>Your open weekly starter slots</span><b>'+mine.daily.reduce((n,d)=>n+Math.max(0,c.lineupCapacity()-d.starts),0)+'</b></div>'+
  '<div class="statrow"><span>Modeled weekly margin</span><b class="'+(diff>=0?"up":"down")+'">'+(diff>=0?"+":"")+f(diff)+' FP</b></div>'+
  '<div class="buttonrow" style="margin-top:15px">'+button("matchups","Full weekly heatmap","ghost xs")+button("opponent","Edit opponent","ghost xs")+'</div>')+'</div>';
- html+='<p class="strategy-note" style="margin:18px 0">* These are estimates calculated from recorded season per-game stats and scheduled usable games, not verified future projections or winning probabilities. Injuries, exact Yahoo positions, acquisition rules and lineup locks are not currently modeled. '+(weekInfo.partial?"The schedule feed is partial; projections may be incomplete.":"")+'</p>';
+ html+='<p class="strategy-note" style="margin:18px 0">* These are estimates from season per-game averages and scheduled games, not verified future projections or win odds. IL players are excluded. Detailed Yahoo slot eligibility, acquisition rules and lineup locks are not yet modeled. '+(weekInfo.partial?"The schedule feed is partial; projections may be incomplete.":"")+'</p>';
  return html;
 }
 function onClick(c,a,el){
@@ -112,10 +109,21 @@ function onClick(c,a,el){
   if(!ids.length){toast("Select at least one player");return true}
   if(r.replaceRoster&&(state.opponentRoster||[]).length&&!confirm("Replace all saved opponent players?"))return true;
   const next=r.replaceRoster?[]:[...(state.opponentRoster||[])];
-  for(const id of ids){const player=nbaPlayers.find(p=>p.id===id)||players.find(p=>p.id===id);if(player){if(!next.includes(id))next.push(id);state.cachePlayers={...(state.cachePlayers||{}),[id]:player}}}
-  state.opponentRoster=next.slice(0,30);state.opponentManual=true;state.opponentImportOpen=false;r.replaceRoster=false;clearImageReview();persist();render();toast(ids.length+" opponent players imported");return true
+  let placements=r.replaceRoster?{}:{...(state.opponentPositions||{})};
+  for(const id of ids){
+   const player=nbaPlayers.find(p=>p.id===id)||players.find(p=>p.id===id)||state.cachePlayers?.[id];
+   if(!player)continue;
+   if(!next.includes(id))next.push(id);
+   state.cachePlayers={...(state.cachePlayers||{}),[id]:player};
+   const target=r.positions?.[id];
+   if(target&&(r.positionEdited?.has(id)||!placements[id])){
+    placements=window.HoopIQLineup.move(next,placements,id,target,c.currentLineupSlots());
+   }else if(!placements[id])placements[id]="UNASSIGNED";
+  }
+  state.opponentRoster=next;state.opponentPositions=placements;state.opponentManual=true;
+  state.opponentImportOpen=false;clearImageReview();persist();render();toast(ids.length+" opponent players imported. Review their slots.");return true
  }
- if(a==="opponentRemove"){const id=Number(el.dataset.id);state.opponentRoster=(state.opponentRoster||[]).filter(x=>Number(x)!==id);persist();render();return true}
+ if(a==="opponentRemove"){const id=Number(el.dataset.id);state.opponentRoster=(state.opponentRoster||[]).filter(x=>Number(x)!==id);delete state.opponentPositions?.[id];persist();render();return true}
  return false;
 }
 function onChange(c,t){
@@ -125,7 +133,7 @@ function onChange(c,t){
  if(t.id==="opponentFile"&&t.files?.length){scanYahooPhotos(t.files,"opponent");return true}
  if(t.id==="addopponent"&&t.value){
   const id=Number(t.value),p=nbaPlayers.find(x=>x.id===id)||players.find(x=>x.id===id);
-  if(p){state.opponentRoster=[...new Set([...(state.opponentRoster||[]),id])].slice(0,30);state.opponentManual=true;state.cachePlayers={...(state.cachePlayers||{}),[id]:p};state.opponentQuery="";persist();render();toast(p.name+" added to opponent")}
+  if(p){state.opponentRoster=[...new Set([...(state.opponentRoster||[]),id])].slice(0,30);state.opponentManual=true;state.opponentPositions={...(state.opponentPositions||{}),[id]:"BN"};state.cachePlayers={...(state.cachePlayers||{}),[id]:p};state.opponentQuery="";persist();render();toast(p.name+" added to opponent")}
   return true;
  }
  return false;

@@ -24,3 +24,4 @@ jobs:
           node hoopiq/tests/matchup-smoke.cjs
           node hoopiq/tests/ocr-matching.cjs
           node hoopiq/tests/import-batch.cjs
+          node hoopiq/tests/lineup-slots.cjs
