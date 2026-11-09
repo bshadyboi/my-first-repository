@@ -61,7 +61,7 @@
  .bottomnav button{font-size:10px;min-height:43px;justify-content:center}.bottomnav button i{font-size:20px}
  .content{padding-bottom:calc(110px + env(safe-area-inset-bottom))}.hero{padding:20px}.pagehead{margin-bottom:15px}
 }
-</style><link rel="stylesheet" href="/theme.css?v=3"/><link rel="stylesheet" href="/matchup-hq.css?v=1"/></head><body><div id="app"></div><script src="/roster-ocr.js?v=3"></script><script src="/import-batch.js?v=1"></script><script src="/matchup-hq.js?v=2"></script><script>
+</style><link rel="stylesheet" href="/theme.css?v=3"/><link rel="stylesheet" href="/matchup-hq.css?v=2"/></head><body><div id="app"></div><script src="/roster-ocr.js?v=3"></script><script src="/import-batch.js?v=1"></script><script src="/matchup-hq.js?v=2"></script><script>
 (function(){
 "use strict";
 const storage="hoopiq-preview-v2";
@@ -529,7 +529,7 @@ function importBatchPanel(target){
   html+='<h3 class="batch-subtitle">Ambiguous names ('+r.ambiguous.length+')</h3>'+
    '<p class="muted small">Select the correct person. We never automatically choose between two possible matches.</p>'+
    r.ambiguous.map((a,i)=>{
-    const choices=(a.choices||[]).map(name=>[...nbaPlayers,...players].find(p=>p.name===name)).filter(Boolean);
+    const choices=(a.choices||[]).map(name=>[...nbaPlayers,...players,...Object.values(state.cachePlayers||{})].find(p=>p.name===name)).filter(Boolean);
     return '<div class="batch-ambiguous"><div><b>'+esc(a.line)+'</b><div class="muted tiny">'+esc(a.file||"Screenshot")+'</div></div>'+
      '<select class="select" id="batchAmbig'+i+'" aria-label="Match player for '+esc(a.line)+'"><option value="">Select correct player…</option>'+
       choices.map(p=>'<option value="'+p.id+'">'+esc(p.name)+' · '+esc(p.team)+'</option>').join("")+'</select>'+
@@ -587,7 +587,7 @@ async function scanYahooPhotos(fileList,target="waiver"){
     const cropped=await imageForYahooOCR(scan.file);
     const first=await worker.recognize(cropped||scan.file);
     let raw=String(first?.data?.text||"");
-    if(matchOCRText(raw).matches.length<3){
+    if(matchOCRText(raw).matches.length<6){
      const extra=await worker.recognize(scan.file);
      raw+="\n"+String(extra?.data?.text||"");
     }
