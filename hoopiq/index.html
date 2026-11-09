@@ -61,7 +61,7 @@
  .bottomnav button{font-size:10px;min-height:43px;justify-content:center}.bottomnav button i{font-size:20px}
  .content{padding-bottom:calc(110px + env(safe-area-inset-bottom))}.hero{padding:20px}.pagehead{margin-bottom:15px}
 }
-</style><link rel="stylesheet" href="/theme.css?v=3"/><link rel="stylesheet" href="/matchup-hq.css?v=2"/></head><body><div id="app"></div><script src="/roster-ocr.js?v=3"></script><script src="/import-batch.js?v=1"></script><script src="/matchup-hq.js?v=2"></script><script>
+</style><link rel="stylesheet" href="/theme.css?v=3"/><link rel="stylesheet" href="/matchup-hq.css?v=2"/></head><body><div id="app"></div><script src="/roster-ocr.js?v=3"></script><script src="/lineup-slots.js?v=1"></script><script src="/import-batch.js?v=1"></script><script src="/matchup-hq.js?v=2"></script><script>
 (function(){
 "use strict";
 const storage="hoopiq-preview-v2";
@@ -96,7 +96,7 @@ const raw=[
 ["Trey Murphy III","NOP","SF",20.2,4.7,3.5,1.1,.7,2,3,82,1]
 ];
 const players=raw.map((a,i)=>({id:i+1,name:a[0],team:a[1],pos:a[2],pts:a[3],reb:a[4],ast:a[5],stl:a[6],blk:a[7],tov:a[8],games:a[9],own:a[10],available:!!a[11],threes:Math.round(a[3]*.17*10)/10}));
-const defaultState=()=>({waiverIds:[],waiverQuery:'',pasteOpen:false,weekStart:weekMonday(),fitPlayer:0,fitDrop:'',lineupCount:6,fitOpp:'',manualRoster:false,manualQuery:'',cachePlayers:{},view:"dashboard",name:"My Fantasy Team",importOpen:false,waiverImportOpen:false,manualAddOpen:false,coachHistory:[],league:"Yahoo Points League (Demo)",opponent:"Opponent",opponentRoster:[],opponentManual:false,opponentImportOpen:false,opponentPasteOpen:false,opponentManualAddOpen:false,opponentQuery:"",watch:[5,19],roster:[1,2,6,7,11,13,17,18],drafted:[],give:[7],get:[6],scoring:{...defs},search:"",position:"ALL",sort:"fp",reverse:false,selected:null,menu:false});
+const defaultState=()=>({waiverIds:[],waiverQuery:'',pasteOpen:false,weekStart:weekMonday(),fitPlayer:0,fitDrop:'',lineupCount:10,lineupSlots:["PG","SG","G","SF","PF","F","C","C","UTIL","UTIL"],rosterPositions:{},opponentPositions:{},fitOpp:'',manualRoster:false,manualQuery:'',cachePlayers:{},view:"dashboard",name:"My Fantasy Team",importOpen:false,waiverImportOpen:false,manualAddOpen:false,coachHistory:[],league:"Yahoo Points League (Demo)",opponent:"Opponent",opponentRoster:[],opponentManual:false,opponentImportOpen:false,opponentPasteOpen:false,opponentManualAddOpen:false,opponentQuery:"",watch:[5,19],roster:[1,2,6,7,11,13,17,18],drafted:[],give:[7],get:[6],scoring:{...defs},search:"",position:"ALL",sort:"fp",reverse:false,selected:null,menu:false});
 let saved={};try{saved=JSON.parse(localStorage.getItem(storage)||"{}")||{}}catch(e){}
 let state={...defaultState(),...saved,view:"dashboard",selected:null,menu:false,search:"",scoring:{...defs,...(saved.scoring||{})}};
 const $=id=>document.getElementById(id);
@@ -189,6 +189,63 @@ function weekMonday(){
 function weekDate(base,offset){const d=new Date(base+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+offset);return d.toISOString().slice(0,10)}
 const normalizeTeam=t=>({UTAH:"UTA",WSH:"WAS",NY:"NYK",GS:"GSW",SA:"SAS",NO:"NOP",PHO:"PHX"})[t]||t;
 const normalizeName=n=>String(n||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+
+/* Yahoo-like roster positions. All changes are local, not Yahoo transactions. */
+function currentLineupSlots(){
+ const a=state.lineupSlots;
+ return Array.isArray(a)&&a.length?a:window.HoopIQLineup.DEFAULT;
+}
+function lineupCapacity(){return window.HoopIQLineup.slotList(currentLineupSlots()).length}
+function teamIds(kind){return kind==="opponent"?(state.opponentRoster||[]):(state.roster||[])}
+function teamAssignments(kind){return kind==="opponent"?(state.opponentPositions||{}):(state.rosterPositions||{})}
+function lineupModel(kind){return window.HoopIQLineup.normalizeRoster(teamIds(kind),teamAssignments(kind),currentLineupSlots())}
+function fantasyActiveRoster(){return sampleRoster().filter(p=>(state.rosterPositions||{})[p.id]!=="IL")}
+function lineupOptionHTML(value="UNASSIGNED"){
+ const slots=window.HoopIQLineup.slotList(currentLineupSlots());
+ const all=[["UNASSIGNED","Unassigned"],...slots.map(slot=>[slot.key,slot.label+(slots.filter(x=>x.label===slot.label).length>1?" "+slot.occurrence:"")]),["BN","Bench"],["IL","Injured List"]];
+ return all.map(([key,label])=>'<option value="'+esc(key)+'" '+(key===value?"selected":"")+'>'+esc(label)+'</option>').join("");
+}
+function renderLineup(kind){
+ const model=lineupModel(kind),ids=teamIds(kind),isOpponent=kind==="opponent";
+ const positions=teamAssignments(kind),title=isOpponent?"Opponent":"My Team";
+ const slots=window.HoopIQLineup.slotList(currentLineupSlots());
+ const row=(id,key)=>{
+  const player=id?P(id):null,label=key.includes(":")?key.split(":")[0]:key;
+  const candidates=ids.filter(x=>Number(x)!==Number(id)).map(other=>{
+   const p=P(other);return p?'<option value="'+other+'">'+esc(p.name)+' · '+esc(p.team)+'</option>':"";
+  }).join("");
+  const fill=key.includes(":")?'<select class="select lineup-fill" data-fill-team="'+kind+'" data-fill-key="'+esc(key)+'" aria-label="Choose player for '+esc(key)+'"><option value="">'+(player?"⇄ Change starter…":"＋ Fill this slot…")+'</option>'+candidates+'</select>':"";
+  const manage=player?'<details class="lineup-manage"><summary>Move / swap</summary>'+
+   '<label class="muted tiny">Move '+esc(player.name)+' to</label>'+
+   '<select class="select lineup-move" data-lineup-team="'+kind+'" data-lineup-id="'+player.id+'">'+lineupOptionHTML(positions[player.id]||"UNASSIGNED")+'</select>'+
+   (key.includes(":")?'<label class="muted tiny">Swap with another roster player</label>'+fill:"")+
+   button(isOpponent?"opponentRemove":"removeroster","Remove player","ghost xs",'data-id="'+player.id+'"')+'</details>':"";
+  return '<div class="lineup-player'+(!player?" lineup-empty":"")+'"><span class="lineup-slot-label">'+esc(label)+'</span>'+
+   (player?icon(player):'<span class="lineup-empty-avatar">＋</span>')+
+   '<div class="lineup-player-body"><strong>'+esc(player?player.name:"Empty slot")+'</strong>'+
+   (player?'<small>'+esc(player.team)+' · '+esc(player.pos||"NBA")+'</small>':'<small>Available for a starter</small>')+
+   (player?manage:fill)+'</div>'+
+   (player?'<div class="lineup-fp">'+(player.statsUnavailable?'—':f(fp(player)))+'<small>'+(player.statsUnavailable?"No stats":"FP/G")+'</small></div>':"")+
+   '</div>';
+ };
+ const group=(name,members,key)=>'<section class="lineup-group"><div class="row between lineup-grouphead"><h3>'+name+'</h3><span class="pill blue">'+members.length+'</span></div>'+
+   (members.length?members.map(id=>row(id,key)).join(""):'<p class="small muted">No players assigned.</p>')+'</section>';
+ const intro='<div class="lineup-summary"><span><b>'+model.active+'</b> / '+model.slots.length+' starters</span>'+
+  '<span><b>'+model.bn.length+'</b> bench</span><span><b>'+model.il.length+'</b> IL</span>'+
+  (model.unassigned.length?'<span><b>'+model.unassigned.length+'</b> need placement</span>':"")+'</div>';
+ return card(title+" lineup · "+model.count+" total players",intro+
+ '<section class="lineup-group"><div class="row between lineup-grouphead"><h3>Starters</h3><span class="muted tiny">Match Yahoo slots</span></div>'+
+ model.slots.map(slot=>row(slot.id,slot.key)).join("")+'</section>'+
+ group("Bench",model.bn,"BN")+group("Injured List · IL",model.il,"IL")+
+ (model.unassigned.length?group("Needs placement",model.unassigned,"UNASSIGNED"):"")+
+ '<p class="strategy-note">Select an empty slot to fill it, or tap Move / swap under a player to change their position. A displaced starter swaps into the old slot, or goes to the bench. IL players remain on your roster but are excluded from modeled starts. Changes affect HoopIQ only, not Yahoo Fantasy.</p>');
+}
+function applyLineupPosition(kind,id,destination){
+ const key=kind==="opponent"?"opponentPositions":"rosterPositions";
+ state[key]=window.HoopIQLineup.move(teamIds(kind),state[key]||{},id,destination,currentLineupSlots());
+ persist();render();
+}
+
 function sampleRoster(){return roster().map(p=>nbaPlayers.find(q=>normalizeName(q.name)===normalizeName(p.name))||p)}
 let weekInfo={start:"",games:[],loading:false,error:"",partial:false};let weekGameCache=new Map();
 async function loadWeek(force=false){
@@ -210,7 +267,7 @@ function weekGame(p,date){
 }
 function scheduleReady(){return weekInfo.start===(state.weekStart||weekMonday())&&!weekInfo.loading&&!weekInfo.error&&weekInfo.games.length>0;}
 function scheduleDays(){
- const lineup=sampleRoster(),cap=Math.max(1,Math.min(15,Number(state.lineupCount)||6));
+ const lineup=fantasyActiveRoster(),cap=lineupCapacity();
  return Array.from({length:7},(_,i)=>{
   const date=weekDate(state.weekStart||weekMonday(),i);
   const scheduled=lineup.flatMap(p=>weekGame(p,date).map(g=>({p,g,value:fp(p)}))).sort((a,b)=>b.value-a.value);
@@ -236,7 +293,7 @@ function weekHeatmap(days){
 }
 function addDropSuggestions(limit=4){
  if(!scheduleReady())return [];
- const current=sampleRoster(),own=new Set(current.map(p=>normalizeName(p.name)));
+ const current=fantasyActiveRoster(),own=new Set(current.map(p=>normalizeName(p.name)));
  const candidates=chosenWaivers().filter(p=>!own.has(normalizeName(p.name)))
   .map(p=>({p,scheduled:Array.from({length:7},(_,i)=>weekGame(p,weekDate(state.weekStart||weekMonday(),i)).length).reduce((a,b)=>a+b,0)}))
   .filter(x=>x.scheduled>0).sort((a,b)=>b.scheduled*fp(b.p)-a.scheduled*fp(a.p)).slice(0,40);
@@ -258,9 +315,9 @@ function suggestionCards(items,compact=false){
  }).join("");
 }
 function computeFit(pick,drop){
- const old=sampleRoster(),next=old.filter(p=>!drop||normalizeName(p.name)!==normalizeName(drop.name));
+ const old=fantasyActiveRoster(),next=old.filter(p=>!drop||normalizeName(p.name)!==normalizeName(drop.name));
  if(pick)next.push(pick);
- const cap=Math.max(1,Math.min(15,Number(state.lineupCount)||6));
+ const cap=lineupCapacity();
  let oldTotal=0,newTotal=0,usable=0,blocked=0,games=0;
  const days=Array.from({length:7},(_,i)=>{
   const date=weekDate(state.weekStart||weekMonday(),i);
@@ -375,11 +432,7 @@ function league(){
   '<div class="overview-kpi"><span>Roster players</span><b>'+rr.length+'</b><span>'+(manual?"Your saved team":"Demo roster")+'</span></div>'+
   '<div class="overview-kpi"><span>Avg. FP/game</span><b>'+avg+'</b><span>Custom scoring</span></div>'+
   '<div class="overview-kpi"><span>Yahoo sync</span><b style="font-size:16px;margin:9px 0 5px">Offline</b><span>Manual import</span></div></div>';
- let rosterList='<div class="waiver-cleanlist">';
- rosterList+=rr.map(p=>'<div class="waiver-line">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+' · '+esc(p.pos)+'</div></div>'+
- '<div class="waiver-metrics"><b>'+f(fp(p))+'</b><small>FP / game</small></div>'+button("removeroster","×","ghost xs",'data-id="'+p.id+'" aria-label="Remove '+esc(p.name)+'"')+'</div>').join("");
- rosterList+='</div><p class="strategy-note" style="margin-top:12px">Player values are season averages where available, otherwise illustrative estimates. Changes are saved only on this device.</p>';
- html+=card("Roster players ("+rr.length+")",rr.length?rosterList:'<div class="empty">Your roster is empty. Import your Yahoo team screenshot to begin.</div>');
+ html+=renderLineup("roster");
  html+='<div style="height:15px"></div><div class="grid two">'+
  card("League preferences",'<p class="small muted">Manage your fantasy points and league setup.</p><div class="statrow"><span>Team</span><b>'+esc(state.name)+'</b></div>'+
  '<div class="statrow"><span>League</span><b>'+esc(state.league)+'</b></div><div class="buttonrow" style="margin-top:13px">'+button("settings","Edit scoring and names","primary xs")+'</div>')+
@@ -681,9 +734,9 @@ function waiverFits(){
 }
 function waivers(){return waiverFits();}
 function matchups(){
- const rosterPlayers=sampleRoster(),ready=scheduleReady(),days=ready?scheduleDays():[];
+ const rosterPlayers=fantasyActiveRoster(),ready=scheduleReady(),days=ready?scheduleDays():[];
  const total=days.reduce((n,d)=>n+d.points,0),bench=days.reduce((n,d)=>n+d.conflicts,0),usable=days.reduce((n,d)=>n+d.used,0);
- const cap=Math.max(1,Math.min(15,Number(state.lineupCount)||6));
+ const cap=lineupCapacity();
  const matrix=ready?'<div class="tablewrap" style="margin-top:14px"><table class="week-matrix" aria-label="Player games and starting capacity for this week"><thead><tr><th class="playercol">PLAYER</th>'+days.map(d=>'<th>'+d.day+'<br>'+Number(d.date.slice(-2))+'</th>').join("")+'</tr></thead><tbody>'+
  rosterPlayers.map(p=>'<tr><td class="playercol">'+esc(p.name)+'</td>'+days.map(d=>{
  const isScheduled=weekGame(p,d.date).length>0,starts=d.starters.some(x=>normalizeName(x.p.name)===normalizeName(p.name));
@@ -699,7 +752,7 @@ function matchups(){
  (!state.manualRoster?'<div class="note warn" style="margin-bottom:14px">You are viewing a sample roster. '+button("league","Import your actual Yahoo roster","primary xs")+'</div>':'')+
  (ready?'<div class="overview-kpis" style="margin-bottom:16px"><div class="overview-kpi"><span>Usable starts</span><b>'+usable+'</b><span>Inside daily limit</span></div><div class="overview-kpi"><span>Bench conflicts</span><b class="'+(bench?"down":"")+'">'+bench+'</b><span>Extra scheduled games</span></div><div class="overview-kpi"><span>Modeled week</span><b>'+f(total,0)+'</b><span>Estimated FP; sample fallback</span></div></div>':scheduleNotice())+
  card("Daily lineup heatmap",ready?weekHeatmap(days)+
- '<div class="row between" style="margin:12px 0;flex-wrap:wrap"><label for="fitcapacity" class="small muted">Active starters per day</label><div class="row"><input id="fitcapacity" class="textinput" type="number" min="1" max="15" style="width:65px" value="'+cap+'">'+button("fitcapacity","Apply","primary xs")+'</div></div>'+
+ '<div class="row between" style="margin:12px 0;flex-wrap:wrap"><span class="small muted">Modeled active lineup: <b>'+cap+' Yahoo starter slots</b> · IL excluded</span>'+button("settings","Edit slot counts","ghost xs")+'</div>'+
  matrix+'<p class="strategy-note">✓ fits in your lineup · × would be benched · — no game. Starting priority uses season FP/G, not Yahoo position eligibility or injuries.</p>'+
  (weekInfo.partial?'<p class="strategy-note">The NBA schedule is partial. Totals may be incomplete.</p>':''):
  '<p class="muted">Your heatmap will appear when the NBA schedule is available.</p>')+
