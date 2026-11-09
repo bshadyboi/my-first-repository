@@ -207,7 +207,7 @@ function lineupOptionHTML(value="UNASSIGNED"){
 }
 function renderLineup(kind){
  const model=lineupModel(kind),ids=teamIds(kind),isOpponent=kind==="opponent";
- const positions=teamAssignments(kind),title=isOpponent?"Opponent":"My Team";
+ const positions=model.positionMap,title=isOpponent?"Opponent":"My Team";
  const slots=window.HoopIQLineup.slotList(currentLineupSlots());
  const row=(id,key)=>{
   const player=id?P(id):null,label=key.includes(":")?key.split(":")[0]:key;
@@ -410,8 +410,8 @@ function dashboard(){
 }
 function league(){
  const rr=sampleRoster(),manual=!!state.manualRoster,available=nbaPlayers.length?nbaPlayers:players;
- let html='<div class="pagehead"><div><div class="eyebrow">YOUR TEAM</div><h1>My roster</h1><p>All your players in one clean, easy-to-manage place.</p></div><div class="buttonrow">'+
- button("openRosterImport","📷 "+(state.importOpen?"Close import":"Import screenshot"),"primary")+
+ let html='<div class="pagehead"><div><div class="eyebrow">YOUR TEAM</div><h1>My roster</h1><p>Yahoo-style starters, Bench and IL. Move, swap or add players without changing your real Yahoo team.</p></div><div class="buttonrow">'+
+ button("openRosterImport","📷 "+(state.importOpen?"Close importer":"Import screenshots"),"primary")+
  button("teamManualToggle","＋ Add manually","ghost")+'</div></div>';
  if(!manual)html+='<div class="note warn" style="margin-bottom:15px">These are example players. Import your Yahoo roster or add names manually to personalize HoopIQ.</div>';
  if(state.importOpen||!manual)html+=rosterImportPanel()+'<div style="height:14px"></div>';
@@ -429,7 +429,7 @@ function league(){
  }
  const avg=rr.length?f(rr.reduce((a,p)=>a+fp(p),0)/rr.length):"—";
  html+='<div class="overview-kpis" style="margin-bottom:15px">'+
-  '<div class="overview-kpi"><span>Roster players</span><b>'+rr.length+'</b><span>'+(manual?"Your saved team":"Demo roster")+'</span></div>'+
+  '<div class="overview-kpi"><span>All rostered players</span><b>'+rr.length+'</b><span>'+(manual?"Includes Bench + IL":"Demo roster")+'</span></div>'+
   '<div class="overview-kpi"><span>Avg. FP/game</span><b>'+avg+'</b><span>Custom scoring</span></div>'+
   '<div class="overview-kpi"><span>Yahoo sync</span><b style="font-size:16px;margin:9px 0 5px">Offline</b><span>Manual import</span></div></div>';
  html+=renderLineup("roster");
@@ -477,7 +477,9 @@ function reconcileImageReview(){
  if(imageReview.target==="roster"||imageReview.target==="opponent"){
   const hints=window.HoopIQLineup.combineHints(imageReview.scans,imageReview.names,currentLineupSlots());
   for(const p of imageReview.names){
-   if(!imageReview.positionEdited.has(p.id)&&hints[p.id]?.position)imageReview.positions[p.id]=hints[p.id].position;
+   if(imageReview.positionEdited.has(p.id))continue;
+   if(hints[p.id]?.position)imageReview.positions[p.id]=hints[p.id].position;
+   else delete imageReview.positions[p.id];
   }
  }
 
@@ -899,7 +901,7 @@ card("Yahoo-style lineup configuration",
  '<div class="buttonrow" style="margin-top:12px">'+button("saveLineupSlots","Save starter positions","primary xs")+button("league","Back to My Team","ghost xs")+'</div>')+
 '<div style="height:16px"></div>'+card("Reset local preview",'<p class="muted">Clear all customizations and restore the initial demo team, watchlist and draft board.</p>'+button("resetall","Reset everything","danger"))}
 function detail(){if(!state.selected)return "";const p=P(state.selected);if(!p)return "";return '<div class="modalbg" data-dismiss="yes"><div class="modal" role="dialog" aria-modal="true" aria-label="Player details"><button class="btn ghost close" data-action="close">×</button><div class="row">'+icon(p)+'<div><h2 style="margin:0">'+esc(p.name)+'</h2><div class="muted">'+p.team+' · '+p.pos+'</div></div></div><p><span class="pill demo">'+(p.source==='real'?'ESPN CURRENT-SEASON AVERAGES':'ILLUSTRATIVE PLAYER STAT LINE')+'</span></p><div class="grid three">'+metric("FP per game",f(fp(p)),"Custom scoring","◈")+metric("Games",p.games,p.source==="real"?"Season games played":"Demo week","▦")+metric(p.source==="real"?"Season FP":"Week FP",f(fp(p)*p.games),p.source==="real"?"Calculated total":"Example total","✧")+'</div><hr class="separator"/><div class="tablewrap"><table class="datatable"><thead><tr><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TOV</th></tr></thead><tbody><tr><td>'+f(p.pts)+'</td><td>'+f(p.reb)+'</td><td>'+f(p.ast)+'</td><td>'+f(p.stl)+'</td><td>'+f(p.blk)+'</td><td>'+f(p.tov)+'</td></tr></tbody></table></div><p class="muted small">The player record here is fictional seed data, not an updated profile. The calculator uses your selected point weights.</p><div class="buttonrow">'+button("watch",state.watch.includes(p.id)?"★ Remove watch":"☆ Add watch","primary",'data-id="'+p.id+'"')+button("close","Close","ghost")+'</div></div></div>'}
-function matchupCtx(){return {state,imageReview,importBatchPanel,scanYahooPhotos,P,players,nbaPlayers,normalizeName,weekDate,weekGame,weekControls,weekInfo,fp,f,esc,button,card,icon,sampleRoster,chosenWaivers,addDropSuggestions,suggestionCards,scheduleReady,scheduleNotice,persist,render,toast,scanYahooPhoto,suggestPhotoNames,clearImageReview,ocrReviewDiagnostics,route,$}}
+function matchupCtx(){return {state,imageReview,importBatchPanel,scanYahooPhotos,renderLineup,lineupCapacity,currentLineupSlots,P,players,nbaPlayers,normalizeName,weekDate,weekGame,weekControls,weekInfo,fp,f,esc,button,card,icon,sampleRoster,chosenWaivers,addDropSuggestions,suggestionCards,scheduleReady,scheduleNotice,persist,render,toast,scanYahooPhoto,suggestPhotoNames,clearImageReview,ocrReviewDiagnostics,route,$}}
 function render(){let body=({dashboard,live,fit,yahoo,coach,league,opponent:()=>window.HoopIQMatchup.renderOpponent(matchupCtx()),matchup:()=>window.HoopIQMatchup.renderMatchup(matchupCtx()),rankings:()=>ranking(false),projections:()=>ranking(true),trade,waivers,matchups,draft,watchlist,settings}[state.view]||dashboard)();$("app").innerHTML=shell(body)+detail();}
 function route(v){if(["fit","waivers","matchups","matchup","dashboard"].includes(v)){state.weekStart=state.weekStart||weekMonday();if(weekInfo.start!==state.weekStart)loadWeek()}state.view=v;state.search="";state.position="ALL";state.sort="fp";state.reverse=false;state.menu=false;state.selected=null;persist();render();window.scrollTo(0,0)}
 function toast(msg){let existing=$("toast");if(existing)existing.remove();let el=document.createElement("div");el.className="toast";el.id="toast";el.textContent=msg;document.body.appendChild(el);setTimeout(()=>{if(el.isConnected)el.remove()},2800)}
