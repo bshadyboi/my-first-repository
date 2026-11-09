@@ -20,6 +20,7 @@ function review(c){
   if((state.opponentRoster||[]).length)body+='<div class="import-mode"><label class="muted small" for="opponentImportMode">How to save</label><select id="opponentImportMode" class="select"><option value="add" '+(!r.replaceRoster?"selected":"")+'>Add to opponent roster</option><option value="replace" '+(r.replaceRoster?"selected":"")+'>Replace opponent roster</option></select></div>';
   body+='<div class="buttonrow" style="margin-top:12px">'+button("opponentApprove","✓ Confirm opponent roster","primary")+button("opponentCancel","Cancel","ghost")+'</div></div>';
  }
+ if(c.ocrReviewDiagnostics)body+=c.ocrReviewDiagnostics("opponent");
  if(state.opponentPasteOpen)body+='<div style="margin-top:15px"><label class="muted small" for="opponentPaste">One player name per line</label><textarea class="textinput" id="opponentPaste" style="width:100%;min-height:115px;display:block;margin:8px 0" placeholder="Jalen Brunson&#10;Mikal Bridges"></textarea>'+button("opponentParsePaste","Review pasted names","primary xs")+'</div>';
  body+='<p class="import-helper">Screenshot OCR runs in your browser. Images are not uploaded to HoopIQ; the confirmed player names are saved to this device. Review carefully: OCR can miss or misidentify a player.</p></section>';
  return body;
