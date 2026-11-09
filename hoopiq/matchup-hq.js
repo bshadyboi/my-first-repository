@@ -6,23 +6,16 @@ function opponentPlayers(c){
  return (Array.isArray(state.opponentRoster)?state.opponentRoster:[]).map(id=>P(id)).filter(Boolean).map(p=>nbaPlayers.find(q=>normalizeName(q.name)===normalizeName(p.name))||p);
 }
 function review(c){
- const {imageReview:r,esc,button,state}=c, active=r.target==="opponent",has=active&&r.names.length>0;
- let body='<section class="card pad"><div class="cardhead"><h2>Import opponent screenshots</h2><span class="pill blue">No Yahoo login required</span></div>'+
- '<div class="import-intro"><div class="import-icon">📸</div><div><h3>Scan their fantasy team</h3><p>Upload one or multiple Yahoo, ESPN, or Sleeper roster screenshots. Confirm detected names before saving.</p></div></div>'+
- '<div class="import-actions">'+button("opponentPhoto","📷 Upload screenshot","primary")+button("opponentPasteToggle","Paste names","ghost")+button("opponentManualToggle","Add manually","ghost")+'</div>'+
- '<input id="opponentFile" type="file" accept="image/*" style="display:none" aria-label="Upload opponent roster screenshot">';
- if(active&&r.busy)body+='<div class="note blue" id="yahooOCRstatus" role="status">Reading screenshot locally…</div>';
- if(active&&r.error)body+='<div class="note warn" role="alert">'+esc(r.error)+'</div>';
- if(active&&r.preview)body+='<img class="import-preview-photo" src="'+esc(r.preview)+'" alt="Opponent screenshot preview">';
- if(has){
-  body+='<div class="import-review"><b>Review '+r.names.length+' detected players</b><p class="muted small">Uncheck mistakes; the list will not affect your own roster.</p>'+
-   r.names.map(p=>'<label class="listitem"><input type="checkbox" data-reviewopponent="'+p.id+'" '+(r.selected.has(p.id)?"checked":"")+'><div class="grow"><b>'+esc(p.name)+'</b><div class="muted tiny">'+esc(p.team)+'</div></div></label>').join("");
-  if((state.opponentRoster||[]).length)body+='<div class="import-mode"><label class="muted small" for="opponentImportMode">How to save</label><select id="opponentImportMode" class="select"><option value="add" '+(!r.replaceRoster?"selected":"")+'>Add to opponent roster</option><option value="replace" '+(r.replaceRoster?"selected":"")+'>Replace opponent roster</option></select></div>';
-  body+='<div class="buttonrow" style="margin-top:12px">'+button("opponentApprove","✓ Confirm opponent roster","primary")+button("opponentCancel","Cancel","ghost")+'</div></div>';
- }
- if(c.ocrReviewDiagnostics)body+=c.ocrReviewDiagnostics("opponent");
- if(state.opponentPasteOpen)body+='<div style="margin-top:15px"><label class="muted small" for="opponentPaste">One player name per line</label><textarea class="textinput" id="opponentPaste" style="width:100%;min-height:115px;display:block;margin:8px 0" placeholder="Jalen Brunson&#10;Mikal Bridges"></textarea>'+button("opponentParsePaste","Review pasted names","primary xs")+'</div>';
- body+='<p class="import-helper">Screenshot OCR runs in your browser. Images are not uploaded to HoopIQ; the confirmed player names are saved to this device. Review carefully: OCR can miss or misidentify a player.</p></section>';
+ const {imageReview:r,esc,button,state,importBatchPanel}=c;
+ let body='<section class="card pad"><div class="cardhead"><h2>Import opponent screenshots</h2><span class="pill blue">Multi-image upload</span></div>'+
+ '<div class="import-intro"><div class="import-icon">📸</div><div><h3>Scan their entire Yahoo roster</h3><p>Select screenshots showing starters, bench and IL together, or add more images later. We combine results, remove duplicates and show uncertain names for review.</p></div></div>'+
+ '<div class="import-actions">'+button("opponentPhoto","📷 Upload screenshots","primary")+
+ button("opponentPasteToggle","Paste names","ghost")+button("opponentManualToggle","Add manually","ghost")+'</div>'+
+ '<input id="opponentFile" type="file" accept="image/*" multiple style="display:none" aria-label="Choose multiple opponent roster screenshots">'+
+ (importBatchPanel?importBatchPanel("opponent"):"");
+ if(state.opponentPasteOpen)body+='<div style="margin-top:15px"><label class="muted small" for="opponentPaste">Paste player names (one per line)</label><textarea class="textinput" id="opponentPaste" style="width:100%;min-height:115px;display:block;margin:8px 0" placeholder="Jalen Brunson&#10;Mikal Bridges"></textarea>'+
+ button("opponentParsePaste","Add pasted names to review","primary xs")+'</div>';
+ body+='<p class="import-helper">Images are scanned locally on your device. Confirm names before saving; HoopIQ does not write to Yahoo.</p></section>';
  return body;
 }
 function renderOpponent(c){
@@ -114,7 +107,7 @@ function onClick(c,a,el){
  if(a==="opponentParsePaste"){r.replaceRoster=false;suggestPhotoNames($("opponentPaste")?.value||"","opponent");return true}
  if(a==="opponentCancel"){clearImageReview();render();return true}
  if(a==="opponentApprove"){
-  if(r.target!=="opponent")return true;
+  if(r.target!=="opponent"||r.busy)return true;
   const ids=[...r.selected].filter(id=>r.names.some(p=>p.id===id));
   if(!ids.length){toast("Select at least one player");return true}
   if(r.replaceRoster&&(state.opponentRoster||[]).length&&!confirm("Replace all saved opponent players?"))return true;
@@ -126,10 +119,10 @@ function onClick(c,a,el){
  return false;
 }
 function onChange(c,t){
- const {state,imageReview:r,scanYahooPhoto,nbaPlayers,players,persist,render,toast}=c;
+ const {state,imageReview:r,scanYahooPhotos,nbaPlayers,players,persist,render,toast}=c;
  if(t.dataset.reviewopponent){const id=Number(t.dataset.reviewopponent);if(t.checked)r.selected.add(id);else r.selected.delete(id);return true}
  if(t.id==="opponentImportMode"){r.replaceRoster=t.value==="replace";return true}
- if(t.id==="opponentFile"&&t.files?.[0]){r.replaceRoster=false;scanYahooPhoto(t.files[0],"opponent");return true}
+ if(t.id==="opponentFile"&&t.files?.length){scanYahooPhotos(t.files,"opponent");return true}
  if(t.id==="addopponent"&&t.value){
   const id=Number(t.value),p=nbaPlayers.find(x=>x.id===id)||players.find(x=>x.id===id);
   if(p){state.opponentRoster=[...new Set([...(state.opponentRoster||[]),id])].slice(0,30);state.opponentManual=true;state.cachePlayers={...(state.cachePlayers||{}),[id]:p};state.opponentQuery="";persist();render();toast(p.name+" added to opponent")}
