@@ -18,6 +18,15 @@ module.exports = async function handler(req, res) {
       url = "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/statistics/byathlete?season=" +
         season + "&seasontype=2&limit=100&sort=offensive.avgPoints:desc";
       ttl = 900;
+    } else if (resource === "roster") {
+      // Team rosters include injured players who have zero current-season games
+      // and are therefore absent from the season-leader stats directory.
+      const team = String(u.searchParams.get("team") || "").toUpperCase();
+      const valid = new Set("ATL BOS BKN CHA CHI CLE DAL DEN DET GSW HOU IND LAC LAL MEM MIA MIL MIN NOP NYK OKC ORL PHI PHX POR SAC SAS TOR UTA WAS".split(" "));
+      if (!valid.has(team)) return res.status(400).json({ok:false,error:"Invalid team"});
+      const siteTeam = ({GSW:"gs",SAS:"sa",NOP:"no",NYK:"ny",WAS:"wsh",UTA:"ut"})[team] || team.toLowerCase();
+      url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/" + siteTeam + "/roster";
+      ttl = 3600;
     } else if (resource === "scoreboard") {
       const date = u.searchParams.get("date") || now.toISOString().slice(0,10).replace(/-/g,"");
       if (!/^\d{8}$/.test(date)) return res.status(400).json({ ok:false, error:"Invalid date" });
