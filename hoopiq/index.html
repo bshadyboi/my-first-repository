@@ -792,16 +792,16 @@ function coachContext(){
  return {
   weekStart:state.weekStart||weekMonday(),scheduleStatus:ready?(weekInfo.partial?"partial":"loaded"):"unavailable",
   manualRoster:!!state.manualRoster,manualWaiverList:true,
-  dailyStarterCapacity:Math.max(1,Math.min(15,Number(state.lineupCount)||6)),
+  dailyStarterCapacity:lineupCapacity(),
   scoring:state.scoring,
-  roster:rosterList.slice(0,30).map(p=>({name:p.name,team:p.team,pos:p.pos,fpPerGame:+f(fp(p)),statSource:p.source==="real"?"live season":"sample or cached"})),
+  roster:rosterList.slice(0,60).map(p=>({name:p.name,team:p.team,pos:p.pos,yahooSlot:(state.rosterPositions||{})[p.id]||"UNASSIGNED",injuredList:(state.rosterPositions||{})[p.id]==="IL",fpPerGame:p.statsUnavailable?null:+f(fp(p)),statSource:p.source==="real"?"live season":"sample or cached"})),
   savedAvailablePlayers:waiverList.slice(0,50).map(p=>({name:p.name,team:p.team,pos:p.pos,fpPerGame:+f(fp(p)),statSource:p.source==="real"?"live season":"sample or cached"})),
   days:ready?scheduleDays().map(d=>({date:d.date,weekday:d.day,open:d.open,used:d.used,conflicts:d.conflicts,modeledPoints:+f(d.points)})):[],
   suggestedMoves:ready?addDropSuggestions(5).map(({p,drop,calc})=>({add:p.name,drop:drop?.name||null,netFantasyPoints:+f(calc.gain),usableStarts:calc.usable,scheduledGames:calc.games,benchConflicts:calc.blocked})):[]
  };
 }
 function coachLocalAnswer(question){
- const q=question.trim().toLowerCase(),ready=scheduleReady(),r=sampleRoster(),w=chosenWaivers();
+ const q=question.trim().toLowerCase(),ready=scheduleReady(),r=fantasyActiveRoster(),w=chosenWaivers();
  const prefix=!state.manualRoster?"Your roster is still the example team. Import your actual Yahoo roster for personalized advice.\n\n":"";
  const notice="These are rough estimates from season averages or sample stats, not injury-adjusted forecasts. Verify availability and moves on Yahoo.";
  const best=ready?addDropSuggestions(5):[];
