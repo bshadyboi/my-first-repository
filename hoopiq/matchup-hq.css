@@ -1,0 +1,163 @@
+
+/* HoopIQ Matchup HQ visual system — dark violet/blue arena look. */
+:root{--bg:#080a18;--card:#11172b;--line:#2d3458;--muted:#9eaacc;--blue:#9c7aff;--mint:#7eecff}
+html{color-scheme:dark}
+body{color:#f4f4ff;background:radial-gradient(ellipse 76% 46% at 88% 0%,#44218662,transparent 73%),radial-gradient(ellipse 60% 40% at 5% 96%,#092c764d,transparent 80%),#080a18}
+.sidebar{background:linear-gradient(170deg,#101027,#0a0e22 70%);border-right-color:#363056}
+.sidebar:after{content:"";display:block;position:absolute;width:290px;height:290px;bottom:-170px;left:-130px;pointer-events:none;border:1px solid #7952ff47;border-radius:50%;box-shadow:0 0 65px #5938ff24}
+.logo .ball{background:linear-gradient(145deg,#c58bff,#6f4eff);color:#130c25}
+.logo em{color:#bf85ff}
+.nav button:hover,.nav button.active{background:linear-gradient(90deg,#5621bfa8,#232c56a0);border-color:#7248c9;color:#fff}
+.nav button.active{box-shadow:inset 3px 0 #b574ff,0 0 16px #7b3dff1e}
+.navsec{color:#807bac}
+.top,.mobileheader{background:#0b0f22ed;border-bottom-color:#36335c}
+.card,.pick-card{background:linear-gradient(155deg,#181a35,#10192c 78%);border-color:#34335b;box-shadow:0 7px 28px #02051a32}
+.card h2{color:#fff}
+.hero{background:radial-gradient(circle at 94% 15%,#8545dd65,transparent 52%),linear-gradient(128deg,#261d52,#10172d);border-color:#724db5}
+.btn{background:#1b2441;border-color:#4a4b7d;color:#f8f5ff}
+.btn:hover{background:#302757}
+.btn.primary{background:linear-gradient(115deg,#9a3fff,#6657f5 67%,#3a8cfb);border-color:#b36dff;color:white;box-shadow:0 8px 22px #6d39dc55}
+.btn.mint{color:#9bf2ff;background:#123d52;border-color:#347b96}
+.pill,.pill.blue{background:#30235b;color:#d5bbff;border-color:#6c4ec1}
+.pill.demo{background:#3e2d26;color:#ffc69f;border-color:#805a40}
+.eyebrow{color:#b18aff}
+.up{color:#60efc2}.down{color:#ff8fa6}.blue{color:#a7b7ff}
+.textinput,.select{background:#111a32;border-color:#41466e;color:#fff}
+.tablewrap{border-color:#393456}.datatable th{background:#252046}.datatable td{border-top-color:#35304e}
+.overview-kpi{background:#1b2040;border-color:#39345d}.overview-kpi b{color:#f5f2ff}
+.note.blue{border-color:#6049aa;background:#261d54;color:#d4ccff}
+.week-tile{background:#171d37;border-color:#3a4166}
+.bottomnav{background:#0e1128f8;border-top-color:#484071}
+.bottomnav button.active{color:#c69cff}
+.hq-steps{display:flex;gap:8px;margin:0 0 15px;flex-wrap:wrap}
+.hq-steps span{padding:10px 13px;border:1px solid #47446e;border-radius:12px;color:#aba7c8;background:#191c36;font-size:12px;font-weight:800}
+.hq-steps span.done{background:#1f3e42;color:#86eed3;border-color:#368d7d}
+.hq-cta{margin:16px 0;display:flex;gap:9px;flex-wrap:wrap}
+.hq-setup{padding:18px;background:#181b3a;border:1px solid #3c3964;border-radius:15px}
+.hq-setup b{font-size:17px}.hq-setup p{color:#aeb3d5;min-height:30px}
+.hq-versus{display:grid;grid-template-columns:minmax(0,1fr) minmax(165px,.7fr) minmax(0,1fr);align-items:stretch;gap:10px;border:1px solid #7550bf;border-radius:19px;background:linear-gradient(110deg,#30205e,#131e41 65%,#15376c);padding:19px;margin-bottom:15px;box-shadow:0 0 50px #683aff20}
+.hq-versus>div{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0}
+.hq-versus>div:last-child{align-items:flex-end;text-align:right}
+.hq-versus small{font-size:12px;font-weight:800;color:#d2c3ff;overflow-wrap:anywhere}
+.hq-versus strong{font-size:clamp(27px,4vw,45px);font-weight:900;letter-spacing:-1.5px;line-height:1}
+.hq-versus span{color:#aeb7d8;font-size:12px}
+.hq-versus .hq-vs{align-items:center;justify-content:center;text-align:center}
+.hq-vs b{font-size:15px;border:1px solid #a66bff;border-radius:50%;background:#2c194d;box-shadow:0 0 22px #a65aff4c;width:48px;height:48px;display:grid;place-items:center}
+.hq-versus .hq-vs span{font-size:12px;font-weight:900}
+.hq-kpis{margin-bottom:0}
+.hq-map{display:grid;grid-template-columns:minmax(68px,1.7fr) repeat(7,minmax(22px,1fr));gap:4px;align-items:center}
+.hq-map>b{text-align:center;color:#a7b9e3;font-size:10px}
+.hq-map>span{font-size:11px;font-weight:800;color:#c8d6fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hq-map>em{display:grid;place-items:center;font-style:normal;padding:10px 2px;border-radius:7px;background:#202a46;font-size:13px;font-weight:800;color:#899dbf}
+.hq-map>em.hq-play{background:#512888;color:#ebd3ff}
+.hq-map>em.hq-opp{background:#1a467c;color:#c1ddff}
+.hq-category{display:grid;grid-template-columns:72px minmax(0,1fr) 80px;gap:7px;align-items:center;padding:10px 0;border-bottom:1px solid #333352}
+.hq-category span{font-size:11px;font-weight:700;color:#c1c7e0}
+.hq-category strong{text-align:right;font-size:11px;color:#e9edff}
+.hq-bars{height:15px;display:flex;gap:2px;align-items:stretch}
+.hq-bars i{display:block;min-width:2px;background:#ae65ff;border-radius:5px 2px 2px 5px}
+.hq-bars i+i{background:#4b9dff;border-radius:2px 5px 5px 2px}
+.waiver-line{border-bottom:1px solid #363652}
+.pick-card{background:linear-gradient(140deg,#201c3c,#111c34);border-color:#473763}
+@media(max-width:870px){.mobileheader .logo em{color:#b18bff}.mobilemenu{background:#10142d;bottom:calc(76px + env(safe-area-inset-bottom))}.bottomnav{grid-template-columns:repeat(5,1fr)}}
+@media(max-width:610px){
+ .hq-versus{padding:13px;grid-template-columns:1fr 70px 1fr;gap:4px}
+ .hq-versus strong{font-size:clamp(21px,6vw,29px)}
+ .hq-versus small{font-size:10px}
+ .hq-versus .hq-vs span{font-size:10px}
+ .hq-vs b{width:38px;height:38px}
+ .hq-map>span{font-size:9px}
+ .hq-map>em{font-size:11px}
+ .hq-steps span{font-size:10px;padding:8px}
+ .hq-category{grid-template-columns:62px minmax(0,1fr) 68px}
+}
+
+/* Win the cascade against legacy light-theme rules without changing legacy features. */
+:root{color-scheme:dark!important;color:#f4f2ff;background:#090b19}
+body{background:radial-gradient(ellipse 77% 55% at 88% 0%,#4821a35e,transparent 74%),#090b19!important;color:#f2f0ff}
+.main{background:transparent!important;color:#f0efff}
+.sidebar{background:linear-gradient(170deg,#111026,#0c0e22)!important;color:#f4f0ff}
+.logo,.mobileheader .logo{color:#fff!important}
+.sidefooter{background:#1a1b3d;border-color:#484071;color:#e4daff}
+.sidefooter p{color:#b4afd1}
+.nav button{color:#aeb0d2}
+.top{background:#101329e8!important;color:#e7e0ff}
+.top .location span{color:#9695b6}
+.avatar{background:#3b2a69;color:#e7d8ff}
+.toolbar .pill{background:#302255;border-color:#6550b1;color:#e5d7ff}
+.pagehead h1,.card h2,.metric .number,.name{color:#f5f2ff!important}
+.pagehead p,.muted,.small,.strategy-note,.import-helper{color:#a8add1}
+.tiny{color:#a3a8c8}
+.card,.metric{background:linear-gradient(155deg,#191b39,#111a2e)!important;border-color:#3a3864!important;box-shadow:0 6px 28px #05061b42}
+.metric .toprow{color:#abb1d5}
+.btn.ghost{background:#202342;color:#d0cbf2;border-color:#48466e}
+.btn.xs{color:#e4ddff}
+.pill.blue{background:#30235b;color:#dcc7ff;border-color:#7555ce}
+.hero h2,.hero p{color:#fff}
+.textinput,.select{background:#141931;color:#f2ecff;border-color:#4a4672}
+.textinput::placeholder{color:#8f93b9}
+.listitem{border-bottom-color:#323658}
+.initial{background:#30315b;border-color:#585192;color:#e7d3ff}
+.datatable th,.team-clean-roster .datatable th{background:#262349;color:#c3c1de}
+.datatable td,.datatable tr:hover td{background:#141d34;color:#e0e4ff;border-top-color:#333657}
+.tableplayer{color:#f2efff}
+.tradepane{background:#191c3c;border-color:#4a426c}
+.tradepane h3,.tradeplayer,.statrow{color:#ebe9ff}
+.tradeplayer{background:#262845}
+.statrow,.settingsrow{border-bottom-color:#353556}
+.note{background:#1d3937;color:#b9ffe8;border-color:#397367}
+.note.warn{background:#433025;color:#ffd2a0;border-color:#77543c}
+.note.blue{background:#261e4f;color:#d6caff;border-color:#6753a8}
+.empty{color:#a4a7c9}
+.modal{background:#191a34;border-color:#565087;color:#f5f0ff}
+.modal h2,.draftrow,.draftrow b,.draftrow strong{color:#f0efff}
+.toast{background:#39285d;border-color:#8968df;color:#fff}
+.star{color:#aaa2c9}.star.on{color:#ffd47f}
+.link{color:#bca2ff}
+.week-tile,.week-tile.heat-open,.week-tile.heat-full,.week-tile.heat-conflict{color:#e8e4ff;border-color:#4d4471}
+.week-tile.heat-open{background:#153c3d}.week-tile.heat-full{background:#243b63}.week-tile.heat-conflict{background:#522c49}
+.week-tile small{color:#bac4de}.week-tile strong{color:#fff}
+.week-tile.heat-open em{color:#7be8c5}.week-tile.heat-full em{color:#a2c4ff}.week-tile.heat-conflict em{color:#ffacbd}
+.heat-legend{color:#b6b8d6}
+.slot-on{background:#184d48;color:#a4ffe1}.slot-bench{background:#542e43;color:#ffc5d1}.slot-off{background:#1d2540;color:#9aa8c7}
+.week-matrix th,.week-matrix td{color:#d4d8ee}
+.pick-arrow,.pick-metrics{color:#aeb5da}
+.pick-gain{color:#7ef3ca}
+.mini-days span{background:#262d4a;color:#aab6db}.mini-days span.used{background:#23564a;color:#9dfbe4}.mini-days span.blocked{background:#573044;color:#ffd0d6}
+.overview-kpi{background:#1b2040;border-color:#39345d}
+.overview-kpi b{color:#f5f2ff}
+.overview-kpi span{color:#a3a9d0}
+.import-intro{background:#251c4c;border-color:#5e4b9a}
+.import-icon{background:#422c81;color:#f0d7ff}
+.import-intro h3{color:#f1e9ff}
+.import-intro p{color:#c1b8e7}
+.import-review{background:#191f3f;border-color:#574d8c}
+.coach-intro{background:linear-gradient(150deg,#251d4a,#141b32)}
+.coach-mark{background:#493177;color:#e5d8ff}
+.coach-intro h2,.coach-context b{color:#e7defd}
+.coach-intro p,.coach-context span,.coach-empty{color:#b5b4d4}
+.coach-chips{border-color:#393b5d}
+.coach-chip{background:#262342;border-color:#5c518a;color:#eee3ff}
+.coach-message.bot{background:#242640;border-color:#454263;color:#e5e6ff}
+.coach-message.user{background:#6534b7;color:#fff}
+.coach-form{border-color:#37365f}
+.coach-side-title{color:#c8b4fd}.coach-context{border-color:#353556}
+.premium-head{background:linear-gradient(115deg,#432389,#203a79)}
+.premium-head .btn{background:#9f67ff;border-color:#af7fff;color:white}
+.premium-head .pill{background:#31295b;border-color:#7a5aca;color:#e9d8ff}
+.simple-strip span{background:#2b254c;color:#d7c8ff}
+.waiver-line{border-bottom-color:#353654}
+.waiver-metrics b{color:#9af6da}
+.waiver-metrics small{color:#a0a9c7}
+.avatar-photo img{background:#272341}
+select option{background:#191b34;color:#f4efff}
+::-webkit-scrollbar-thumb{background:#4d4673}
+@media(max-width:870px){
+ .mobileheader{background:#11132bf2!important;border-bottom-color:#434061;box-shadow:0 2px 12px #05051650;color:#fff}
+ .mobileheader .btn{color:#e4dfff}
+ .bottomnav{background:#0e1128f8!important;border-top-color:#484071;box-shadow:0 -9px 20px #03041c55}
+ .bottomnav button{color:#a5a4ca}
+ .bottomnav button.active{background:#332358;color:#e9d4ff}
+ .mobilemenu{background:#12142e;box-shadow:-90px 0 0 200vw #01010aaf}
+}
+@media(max-width:610px){.coach-form{background:#151a32}.content{padding-bottom:calc(112px + env(safe-area-inset-bottom))}}

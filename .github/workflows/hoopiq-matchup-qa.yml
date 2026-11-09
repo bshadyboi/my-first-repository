@@ -1,0 +1,23 @@
+name: HoopIQ Matchup HQ QA
+on:
+  pull_request:
+    paths:
+      - 'hoopiq/**'
+      - '.github/workflows/hoopiq-matchup-qa.yml'
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Verify syntax and matcher
+        run: node hoopiq/tests/matchup-smoke.cjs
