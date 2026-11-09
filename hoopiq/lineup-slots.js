@@ -44,6 +44,21 @@
   next[id]=destination;
   return next;
  }
+ function move(ids,placements,playerId,target,definition=DEFAULT){
+  const before=normalizeRoster(ids,placements,definition),id=Number(playerId);
+  if(!Object.prototype.hasOwnProperty.call(before.positionMap,id))return {...before.positionMap};
+  const validKeys=new Set(slotList(definition).map(s=>s.key));
+  const dst=validKeys.has(target)||["BN","IL",EMPTY].includes(target)?target:EMPTY;
+  const from=before.positionMap[id];
+  const next={...before.positionMap};
+  if(dst===from)return next;
+  if(validKeys.has(dst)){
+   const occupied=before.slots.find(s=>s.key===dst)?.id;
+   if(occupied&&occupied!==id)next[occupied]=validKeys.has(from)?from:"BN";
+  }
+  next[id]=dst;
+  return next;
+ }
  function eligible(ids, placements={}){
   return (Array.isArray(ids)?ids:[]).map(Number).filter(id=>String(placements?.[id]||EMPTY)!=="IL");
  }
@@ -111,5 +126,5 @@
   }
   return all;
  }
- return {DEFAULT,LABELS,EMPTY,slotList,normalizeRoster,place,eligible,identify,combineHints};
+ return {DEFAULT,LABELS,EMPTY,slotList,normalizeRoster,place,move,eligible,identify,combineHints};
 });
