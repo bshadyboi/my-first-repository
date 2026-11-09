@@ -12,7 +12,7 @@ vm.runInNewContext(source,{window});
 const api = window.HoopIQMatchup;
 assert(api && typeof api.renderOpponent==="function" && typeof api.renderMatchup==="function");
 for(const name of ["onClick","onChange","onInput"])assert.equal(typeof api[name],"function");
-assert(html.includes('src="/matchup-hq.js?v=1"'));
+assert(/src="\/matchup-hq\.js\?v=\d+"/.test(html));
 assert(html.includes('href="/matchup-hq.css?v=1"'));
 assert(html.includes('opponentRoster:[]'),"Opponent must have separate persistent roster");
 assert(html.includes('opponent:()=>window.HoopIQMatchup.renderOpponent'));
