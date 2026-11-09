@@ -220,7 +220,7 @@ function renderLineup(kind){
    '<select class="select lineup-move" data-lineup-team="'+kind+'" data-lineup-id="'+player.id+'">'+lineupOptionHTML(positions[player.id]||"UNASSIGNED")+'</select>'+
    (key.includes(":")?'<label class="muted tiny">Swap with another roster player</label>'+fill:"")+
    button(isOpponent?"opponentRemove":"removeroster","Remove player","ghost xs",'data-id="'+player.id+'"')+'</details>':"";
-  return '<div class="lineup-player'+(!player?" lineup-empty":"")+'"><span class="lineup-slot-label">'+esc(label)+'</span>'+
+  return '<div class="lineup-player'+(!player?" lineup-empty":"")+'"><span class="lineup-slot-label" data-slot-type="'+esc(label)+'">'+esc(label)+'</span>'+
    (player?icon(player):'<span class="lineup-empty-avatar">＋</span>')+
    '<div class="lineup-player-body"><strong>'+esc(player?player.name:"Empty slot")+'</strong>'+
    (player?'<small>'+esc(player.team)+' · '+esc(player.pos||"NBA")+'</small>':'<small>Available for a starter</small>')+
