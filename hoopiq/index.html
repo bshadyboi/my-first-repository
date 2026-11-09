@@ -61,7 +61,7 @@
  .bottomnav button{font-size:10px;min-height:43px;justify-content:center}.bottomnav button i{font-size:20px}
  .content{padding-bottom:calc(110px + env(safe-area-inset-bottom))}.hero{padding:20px}.pagehead{margin-bottom:15px}
 }
-</style><link rel="stylesheet" href="/theme.css?v=3"/><link rel="stylesheet" href="/matchup-hq.css?v=1"/></head><body><div id="app"></div><script src="/matchup-hq.js?v=1"></script><script>
+</style><link rel="stylesheet" href="/theme.css?v=3"/><link rel="stylesheet" href="/matchup-hq.css?v=1"/></head><body><div id="app"></div><script src="/roster-ocr.js?v=2"></script><script src="/matchup-hq.js?v=1"></script><script>
 (function(){
 "use strict";
 const storage="hoopiq-preview-v2";
@@ -153,7 +153,7 @@ async function updateNBA(){
   if(!arr.length)throw Error("Season stats not available yet");
   nbaPlayers=arr;nbaMeta.updated=json.retrievedAt;nbaMeta.status="ready";nbaMeta.error="";
  }catch(e){nbaMeta.status="error";nbaMeta.error=String(e.message||e)}
- if(["live","league","fit","waivers","rankings","dashboard","matchups"].includes(state.view))render();
+ if(["live","league","opponent","matchup","fit","waivers","rankings","dashboard","matchups"].includes(state.view))render();
 }
 async function updateScores(){
  try{
@@ -397,9 +397,9 @@ return head("Trade Analyzer","Test single and multi-player trades using your fan
 card("Why this is useful",'<p class="muted">Compare trades using <strong>fantasy points above a baseline replacement player</strong>, rather than adding up points with no regard for roster depth.</p><p class="muted">Change point values in Settings and return here: the math recalculates immediately. Add two or more players per side to explore multi-player deals.</p><div class="note warn">This balance score is not a winning probability. A production model would need live projections, injury context, roster depth and playoff schedules.</div>')+'</div>'}
 
 
-const imageReview={busy:false,error:"",names:[],selected:new Set(),preview:"",target:"waiver",replaceRoster:false};
+const imageReview={busy:false,error:"",rawText:"",ambiguous:[],unmatched:[],names:[],selected:new Set(),preview:"",target:"waiver",replaceRoster:false};
 function clearImageReview(){
- imageReview.names=[];imageReview.selected=new Set();imageReview.error="";imageReview.busy=false;
+ imageReview.names=[];imageReview.selected=new Set();imageReview.error="";imageReview.busy=false;imageReview.rawText="";imageReview.ambiguous=[];imageReview.unmatched=[];
  if(imageReview.preview){URL.revokeObjectURL(imageReview.preview);imageReview.preview=""}
 }
 function chosenWaivers(){
@@ -410,34 +410,90 @@ function chosenWaivers(){
  }
  return result;
 }
+
 function getNamesFromText(raw){
- const lines=String(raw||"").split(/[\r\n,;\t]+/).map(s=>s.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim()).filter(Boolean).slice(0,160);
- const full=[...lines,...lines.slice(0,-1).map((x,i)=>x+" "+lines[i+1])];
- const unique=new Map();
- for(const player of [...nbaPlayers,...players]){
-  const name=player.name.normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim();
-  if(name.length>=5&&!unique.has(name))unique.set(name,player);
- }
- return [...unique].filter(([n])=>{
- const parts=n.split(" "),rev=parts.length>1?parts.slice(1).join(" ")+" "+parts[0]:n;
- return full.some(line=>(" "+line+" ").includes(" "+n+" ")||(" "+line+" ").includes(" "+rev+" "));
-}).map(([n,p])=>({id:p.id,name:p.name,team:p.team})).slice(0,80);
+ const matcher=window.HoopIQRosterOCR;
+ if(!matcher)return [];
+ const pool=[...nbaPlayers,...players,...Object.values(state.cachePlayers||{})];
+ const result=matcher.getMatches(raw,pool);
+ imageReview.ambiguous=result.ambiguous||[];
+ imageReview.unmatched=result.unknown||[];
+ return result.matches.slice(0,80);
 }
 function suggestPhotoNames(text,target=imageReview.target){
  if(imageReview.target!==target)clearImageReview();
  imageReview.target=target;
+ imageReview.rawText=String(text||"").slice(0,7000);
  imageReview.names=getNamesFromText(text);
  imageReview.selected=new Set(imageReview.names.map(x=>x.id));
  imageReview.busy=false;
- imageReview.error=imageReview.names.length?"":"No matching players found. Try a clearer screenshot, paste names, or use manual search.";
+ imageReview.error=imageReview.names.length?"":"No verified player matches yet. Check the detected text below, or paste the Yahoo names. Player initials and team abbreviations are supported.";
  render();
+}
+const ocrRosterTeams=new Set();
+async function loadRosterForOCR(text){
+ const o=window.HoopIQRosterOCR;
+ if(!o)return;
+ const names=o.teamCodes(text);
+ const canon={GS:"GSW",SA:"SAS",NO:"NOP",NY:"NYK",WSH:"WAS",UT:"UTA"};
+ const codes=[...new Set(names.map(t=>canon[t]||t))].filter(t=>t&&t.length<=4).slice(0,12);
+ const missing=codes.filter(t=>!ocrRosterTeams.has(t));
+ // A failed lookup is retryable on the next scan.
+ await Promise.allSettled(missing.map(async team=>{
+  try{
+   const res=await fetch("/api/nba?resource=roster&team="+encodeURIComponent(team));
+   if(!res.ok)throw Error("Roster lookup failed");
+   const json=await res.json();if(!json.ok)throw Error(json.error||"Roster unavailable");
+   const all=json.data?.athletes||[];
+   const rosterPlayers=all.flatMap(a=>Array.isArray(a.items)?a.items:[a]);
+   for(const athlete of rosterPlayers){
+    const id=Number(athlete.id),name=athlete.displayName;
+    if(!id||!name||nbaPlayers.some(p=>p.id===id))continue;
+    nbaPlayers.push({id,name,team:team,pos:athlete.position?.abbreviation||"UTIL",pts:0,reb:0,ast:0,stl:0,blk:0,tov:0,threes:0,games:0,own:0,available:false,source:"roster",statsUnavailable:true});
+   }
+   ocrRosterTeams.add(team);
+  }catch(e){}
+ }));
+}
+async function imageForYahooOCR(file){
+ if(typeof createImageBitmap!=="function")return null;
+ let bmp;try{bmp=await createImageBitmap(file)}catch(e){return null}
+ try{
+  const left=Math.round(bmp.width*0.19),top=Math.round(bmp.height*0.12);
+  const width=Math.round(bmp.width*0.68),height=Math.round(bmp.height*0.81);
+  const scale=Math.min(2.8,1600/width,3400/height);
+  const canvas=document.createElement("canvas");
+  canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+  const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  ctx.drawImage(bmp,left,top,width,height,0,0,canvas.width,canvas.height);
+  const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
+  let average=0;const values=pixels.data;
+  for(let i=0;i<values.length;i+=160)average+=(values[i]+values[i+1]+values[i+2])/3;
+  average/=Math.ceil(values.length/160);
+  const dark=average<125;
+  for(let i=0;i<values.length;i+=4){
+   const luminance=values[i]*.299+values[i+1]*.587+values[i+2]*.114;
+   const out=dark?(luminance>116?20:255):(luminance<150?20:255);
+   values[i]=values[i+1]=values[i+2]=out;
+  }
+  ctx.putImageData(pixels,0,0);
+  return canvas;
+ }finally{bmp.close?.()}
+}
+function ocrReviewDiagnostics(target){
+ if(imageReview.target!==target||!imageReview.rawText)return "";
+ const note=imageReview.ambiguous.length?'<p class="tiny muted">Ambiguous names were not automatically selected: '+imageReview.ambiguous.slice(0,4).map(x=>esc(x.choices.join(" / "))).join("; ")+'</p>':"";
+ return '<details class="ocr-diagnostics"><summary>Review OCR text / correct names</summary>'+
+ '<p class="small muted">Edit any misread initials, surnames, or team abbreviations, then rerun matching. Nothing is uploaded to our server.</p>'+
+ '<textarea id="ocrRawText" class="textinput" spellcheck="false" style="width:100%;min-height:130px;display:block;margin:10px 0">'+esc(imageReview.rawText)+'</textarea>'+
+ note+button("recheckOCR","Find players in edited text","primary xs")+'</details>';
 }
 async function scanYahooPhoto(file,target="waiver"){
  if(!file||imageReview.busy)return;
  imageReview.target=target;
- if(!file.type?.startsWith("image/")){imageReview.error="Select a screenshot image.";render();return}
+ if(!file.type?.startsWith("image/")){imageReview.error="Choose a screenshot image.";render();return}
  if(file.size>15*1024*1024){imageReview.error="Choose an image smaller than 15 MB.";render();return}
- imageReview.error="";imageReview.busy=true;imageReview.names=[];
+ imageReview.error="";imageReview.busy=true;imageReview.names=[];imageReview.rawText="";
  if(imageReview.preview){URL.revokeObjectURL(imageReview.preview);imageReview.preview=""}
  imageReview.preview=URL.createObjectURL(file);render();
  let worker;
@@ -446,19 +502,27 @@ async function scanYahooPhoto(file,target="waiver"){
    await new Promise((resolve,reject)=>{
     const script=document.createElement("script");script.async=true;
     script.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-    script.onload=resolve;script.onerror=()=>reject(Error("OCR library download failed"));
+    script.onload=resolve;script.onerror=()=>reject(Error("OCR reader could not download"));
     document.head.appendChild(script);
    });
   }
-  if(!window.Tesseract)throw Error("Image reader could not start");
   worker=await window.Tesseract.createWorker("eng",1,{logger:m=>{
-   const el=document.getElementById("yahooOCRstatus");
-   if(el&&m.progress!=null)el.textContent="Reading screenshot locally… "+Math.round(m.progress*100)+"%";
+   const el=$("yahooOCRstatus");
+   if(el&&m.progress!=null)el.textContent="Scanning Yahoo roster… "+Math.round(m.progress*100)+"%";
   }});
-  const value=await worker.recognize(file);
-  suggestPhotoNames(value?.data?.text||"",target);
+  await worker.setParameters({tessedit_pageseg_mode:"11"});
+  const cropped=await imageForYahooOCR(file);
+  const first=await worker.recognize(cropped||file);
+  let raw=String(first?.data?.text||"");
+  if(!raw.trim()||getNamesFromText(raw).length<4){
+   const second=await worker.recognize(file);
+   raw+="\n"+String(second?.data?.text||"");
+  }
+  if(nbaPlayers.length<200)await updateNBA();
+  await loadRosterForOCR(raw);
+  suggestPhotoNames(raw,target);
  }catch(e){
-  imageReview.error="Image scanning unavailable: "+String(e.message||e)+". You can still paste or search player names.";
+  imageReview.error="Image scanning unavailable: "+String(e.message||e)+". Paste names or add them manually.";
   imageReview.busy=false;render();
  }finally{if(worker)try{await worker.terminate()}catch(e){}}
 }
@@ -477,10 +541,10 @@ function rosterImportPanel(){
  (active&&imageReview.busy?'<div class="note blue" id="yahooOCRstatus" role="status">Reading screenshot locally…</div>':"")+
  (active&&imageReview.error?'<div class="note warn" style="margin-top:12px" role="alert">'+esc(imageReview.error)+'</div>':"")+
  (active&&imageReview.preview?'<img class="import-preview-photo" alt="Selected Yahoo roster screenshot" src="'+esc(imageReview.preview)+'"/>':"")+
- review+
+ review+ocrReviewDiagnostics("roster")+
  (state.rosterPasteOpen?'<div style="margin-top:12px"><label class="small muted" for="rosterPaste">Player names, one per line</label><textarea id="rosterPaste" class="textinput" style="display:block;width:100%;min-height:115px;resize:vertical;margin:8px 0" placeholder="Nikola Jokic&#10;Anthony Edwards"></textarea>'+button("parseRosterPaste","Review pasted names","primary xs")+'</div>':"")+
  (!nbaPlayers.length?'<div class="note warn" style="margin-top:12px">The live NBA player directory has not loaded. Only example players can be matched right now. Retry once data loads, or enter names manually.</div>':"")+
- '<p class="import-helper">Images stay on your device. The first scan downloads Tesseract.js for browser-based text recognition. Only player names you approve are saved locally; this does not sign in or make Yahoo transactions.</p>');
+ '<p class="import-helper">Images stay on your device. The first scan downloads Tesseract.js for browser-based text recognition. Only names you approve are saved locally; this does not sign in or make Yahoo transactions. Initial + surname abbreviations are supported.</p>');
 }
 function waiverImagePanel(){
  const saved=chosenWaivers(),q=String(state.waiverQuery||"").trim().toLowerCase();
@@ -497,7 +561,7 @@ function waiverImagePanel(){
  (imageReview.target==="waiver"&&imageReview.busy?'<div class="note blue" id="yahooOCRstatus" style="margin-top:12px">Loading on-device image reader…</div>':"")+
  (imageReview.target==="waiver"&&imageReview.error?'<div class="note warn" style="margin-top:12px">'+esc(imageReview.error)+'</div>':"")+
  (imageReview.target==="waiver"&&imageReview.preview?'<img alt="Selected Yahoo screenshot preview" src="'+esc(imageReview.preview)+'" style="display:block;max-width:100%;max-height:160px;border-radius:9px;margin-top:12px"/>':"")+
- preview+
+ preview+ocrReviewDiagnostics("waiver")+
  (state.pasteOpen?'<div style="margin-top:12px"><textarea id="waiverPaste" class="textinput" style="display:block;width:100%;min-height:105px;resize:vertical;margin-bottom:8px" placeholder="One player per line, or pasted text from Yahoo"></textarea>'+button("parseWaiverPaste","Review pasted names","primary xs")+'</div>':"")+
  '<hr class="separator"/><label class="small muted">Or search and add by name</label><input id="waiverQuery" class="textinput" placeholder="Search NBA players…" style="display:block;width:100%;margin:9px 0" value="'+esc(state.waiverQuery||"")+'" autocomplete="off"/>'+
  '<div style="max-height:200px;overflow:auto">'+(suggestions||'<p class="muted small">Type two or more letters to find a player.</p>')+'</div><hr class="separator"/>'+
@@ -715,6 +779,7 @@ if(a==="watch"){state.watch=state.watch.includes(id)?state.watch.filter(x=>x!==i
 if(a==="profile"){state.selected=id;render();return}
 if(a==="close"){state.selected=null;render();return}
 if(a==="status"){state.selected=null;alert("HoopIQ v0.1 is a functional preview with illustrative player data. Local player rankings, scoring, trade scenarios, draft picks, settings and the PWA shell work. Live NBA scores and season stats rely on an unofficial source. Injuries, Yahoo OAuth, accounts and true cross-device sync are NOT connected yet.");return}
+if(a==="recheckOCR"){const corrected=$("ocrRawText")?.value||"";loadRosterForOCR(corrected).then(()=>suggestPhotoNames(corrected,imageReview.target));return}
 if(a==="openRosterImport"){state.importOpen=!state.importOpen;persist();render();return}
 if(a==="openWaiverImport"){state.waiverImportOpen=!state.waiverImportOpen;persist();render();return}
 if(a==="teamManualToggle"){state.manualAddOpen=!state.manualAddOpen;persist();render();return}
