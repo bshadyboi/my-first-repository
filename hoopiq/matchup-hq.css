@@ -71,3 +71,93 @@ body{color:#f4f4ff;background:radial-gradient(ellipse 76% 46% at 88% 0%,#4421866
  .hq-steps span{font-size:10px;padding:8px}
  .hq-category{grid-template-columns:62px minmax(0,1fr) 68px}
 }
+
+/* Win the cascade against legacy light-theme rules without changing legacy features. */
+:root{color-scheme:dark!important;color:#f4f2ff;background:#090b19}
+body{background:radial-gradient(ellipse 77% 55% at 88% 0%,#4821a35e,transparent 74%),#090b19!important;color:#f2f0ff}
+.main{background:transparent!important;color:#f0efff}
+.sidebar{background:linear-gradient(170deg,#111026,#0c0e22)!important;color:#f4f0ff}
+.logo,.mobileheader .logo{color:#fff!important}
+.sidefooter{background:#1a1b3d;border-color:#484071;color:#e4daff}
+.sidefooter p{color:#b4afd1}
+.nav button{color:#aeb0d2}
+.top{background:#101329e8!important;color:#e7e0ff}
+.top .location span{color:#9695b6}
+.avatar{background:#3b2a69;color:#e7d8ff}
+.toolbar .pill{background:#302255;border-color:#6550b1;color:#e5d7ff}
+.pagehead h1,.card h2,.metric .number,.name{color:#f5f2ff!important}
+.pagehead p,.muted,.small,.strategy-note,.import-helper{color:#a8add1}
+.tiny{color:#a3a8c8}
+.card,.metric{background:linear-gradient(155deg,#191b39,#111a2e)!important;border-color:#3a3864!important;box-shadow:0 6px 28px #05061b42}
+.metric .toprow{color:#abb1d5}
+.btn.ghost{background:#202342;color:#d0cbf2;border-color:#48466e}
+.btn.xs{color:#e4ddff}
+.pill.blue{background:#30235b;color:#dcc7ff;border-color:#7555ce}
+.hero h2,.hero p{color:#fff}
+.textinput,.select{background:#141931;color:#f2ecff;border-color:#4a4672}
+.textinput::placeholder{color:#8f93b9}
+.listitem{border-bottom-color:#323658}
+.initial{background:#30315b;border-color:#585192;color:#e7d3ff}
+.datatable th,.team-clean-roster .datatable th{background:#262349;color:#c3c1de}
+.datatable td,.datatable tr:hover td{background:#141d34;color:#e0e4ff;border-top-color:#333657}
+.tableplayer{color:#f2efff}
+.tradepane{background:#191c3c;border-color:#4a426c}
+.tradepane h3,.tradeplayer,.statrow{color:#ebe9ff}
+.tradeplayer{background:#262845}
+.statrow,.settingsrow{border-bottom-color:#353556}
+.note{background:#1d3937;color:#b9ffe8;border-color:#397367}
+.note.warn{background:#433025;color:#ffd2a0;border-color:#77543c}
+.note.blue{background:#261e4f;color:#d6caff;border-color:#6753a8}
+.empty{color:#a4a7c9}
+.modal{background:#191a34;border-color:#565087;color:#f5f0ff}
+.modal h2,.draftrow,.draftrow b,.draftrow strong{color:#f0efff}
+.toast{background:#39285d;border-color:#8968df;color:#fff}
+.star{color:#aaa2c9}.star.on{color:#ffd47f}
+.link{color:#bca2ff}
+.week-tile,.week-tile.heat-open,.week-tile.heat-full,.week-tile.heat-conflict{color:#e8e4ff;border-color:#4d4471}
+.week-tile.heat-open{background:#153c3d}.week-tile.heat-full{background:#243b63}.week-tile.heat-conflict{background:#522c49}
+.week-tile small{color:#bac4de}.week-tile strong{color:#fff}
+.week-tile.heat-open em{color:#7be8c5}.week-tile.heat-full em{color:#a2c4ff}.week-tile.heat-conflict em{color:#ffacbd}
+.heat-legend{color:#b6b8d6}
+.slot-on{background:#184d48;color:#a4ffe1}.slot-bench{background:#542e43;color:#ffc5d1}.slot-off{background:#1d2540;color:#9aa8c7}
+.week-matrix th,.week-matrix td{color:#d4d8ee}
+.pick-arrow,.pick-metrics{color:#aeb5da}
+.pick-gain{color:#7ef3ca}
+.mini-days span{background:#262d4a;color:#aab6db}.mini-days span.used{background:#23564a;color:#9dfbe4}.mini-days span.blocked{background:#573044;color:#ffd0d6}
+.overview-kpi{background:#1b2040;border-color:#39345d}
+.overview-kpi b{color:#f5f2ff}
+.overview-kpi span{color:#a3a9d0}
+.import-intro{background:#251c4c;border-color:#5e4b9a}
+.import-icon{background:#422c81;color:#f0d7ff}
+.import-intro h3{color:#f1e9ff}
+.import-intro p{color:#c1b8e7}
+.import-review{background:#191f3f;border-color:#574d8c}
+.coach-intro{background:linear-gradient(150deg,#251d4a,#141b32)}
+.coach-mark{background:#493177;color:#e5d8ff}
+.coach-intro h2,.coach-context b{color:#e7defd}
+.coach-intro p,.coach-context span,.coach-empty{color:#b5b4d4}
+.coach-chips{border-color:#393b5d}
+.coach-chip{background:#262342;border-color:#5c518a;color:#eee3ff}
+.coach-message.bot{background:#242640;border-color:#454263;color:#e5e6ff}
+.coach-message.user{background:#6534b7;color:#fff}
+.coach-form{border-color:#37365f}
+.coach-side-title{color:#c8b4fd}.coach-context{border-color:#353556}
+.premium-head{background:linear-gradient(115deg,#432389,#203a79)}
+.premium-head .btn{background:#9f67ff;border-color:#af7fff;color:white}
+.premium-head .pill{background:#31295b;border-color:#7a5aca;color:#e9d8ff}
+.simple-strip span{background:#2b254c;color:#d7c8ff}
+.waiver-line{border-bottom-color:#353654}
+.waiver-metrics b{color:#9af6da}
+.waiver-metrics small{color:#a0a9c7}
+.avatar-photo img{background:#272341}
+select option{background:#191b34;color:#f4efff}
+::-webkit-scrollbar-thumb{background:#4d4673}
+@media(max-width:870px){
+ .mobileheader{background:#11132bf2!important;border-bottom-color:#434061;box-shadow:0 2px 12px #05051650;color:#fff}
+ .mobileheader .btn{color:#e4dfff}
+ .bottomnav{background:#0e1128f8!important;border-top-color:#484071;box-shadow:0 -9px 20px #03041c55}
+ .bottomnav button{color:#a5a4ca}
+ .bottomnav button.active{background:#332358;color:#e9d4ff}
+ .mobilemenu{background:#12142e;box-shadow:-90px 0 0 200vw #01010aaf}
+}
+@media(max-width:610px){.coach-form{background:#151a32}.content{padding-bottom:calc(112px + env(safe-area-inset-bottom))}}
