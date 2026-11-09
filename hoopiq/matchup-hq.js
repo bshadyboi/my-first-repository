@@ -38,7 +38,7 @@ function renderOpponent(c){
   html+=card("Add a player manually",'<label class="muted small" for="opponentQuery">Search NBA players</label><input id="opponentQuery" class="textinput" autocomplete="off" placeholder="Find a player…" style="display:block;width:100%;margin:8px 0" value="'+esc(state.opponentQuery||"")+'"><select id="addopponent" class="select" style="width:100%"><option value="">Select player to add…</option>'+choices.map(p=>'<option value="'+p.id+'">'+esc(p.name)+' · '+esc(p.team)+'</option>').join("")+'</select>')+'<div style="height:14px"></div>';
  }
  html+=card("Saved opponent roster ("+rr.length+")",rr.length?
-  rr.map(p=>'<div class="waiver-line">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+' · '+esc(p.pos)+'</div></div><div class="waiver-metrics"><b>'+f(fp(p))+'</b><small>FP/G*</small></div>'+button("opponentRemove","×","ghost xs",'data-id="'+p.id+'" aria-label="Remove '+esc(p.name)+'"')+'</div>').join("")+
+  rr.map(p=>'<div class="waiver-line">'+icon(p)+'<div class="grow"><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.team)+' · '+esc(p.pos)+'</div></div><div class="waiver-metrics"><b>'+(p.statsUnavailable?'—':f(fp(p)))+'</b><small>'+(p.statsUnavailable?'No season stats':'FP/G*')+'</small></div>'+button("opponentRemove","×","ghost xs",'data-id="'+p.id+'" aria-label="Remove '+esc(p.name)+'"')+'</div>').join("")+
   '<p class="strategy-note">*Based on season averages when available; otherwise illustrative fallback data.</p>':
   '<div class="empty">No opponent players yet. Upload their roster screenshot or add names manually.</div>');
  html+='<div class="hq-cta">'+button("matchup","⚔ Compare our teams","primary")+button("league","Edit my team","ghost")+'</div>';
@@ -70,6 +70,12 @@ function renderMatchup(c){
   '<div class="hq-setup"><b>♧ Opponent</b><p>'+(haveOpp?opp.length+' confirmed players':'Their roster is missing')+'</p>'+button("opponent",haveOpp?"Review opponent":"📸 Import opponent",haveOpp?"ghost":"primary")+'</div></div>')+
   '<div class="hq-cta">'+button("waivers","Browse waiver candidates","ghost")+'</div>';
  if(!scheduleReady())return header+scheduleNotice()+card("Rosters saved","The game schedule must load before we calculate a weekly matchup. No calendar or point totals are invented.");
+ const missingStats=[...own,...opp].filter(p=>p.statsUnavailable);
+ if(missingStats.length){
+   return header+card("Some players do not have current-season statistics",
+    '<div class="note warn">The following players appear on an NBA roster but lack current-season averages: <b>'+missingStats.map(p=>esc(p.name)).join(", ")+'</b>. HoopIQ will not treat missing numbers as zero or invent projections. Review those players before relying on matchup totals.</div>'+
+    '<div class="buttonrow" style="margin-top:15px">'+button("opponent","Edit opponent","ghost")+button("league","Review my roster","ghost")+button("matchups","See games this week","primary")+'</div>');
+ }
  const mine=snapshot(c,own),other=snapshot(c,opp),diff=mine.points-other.points,nm=esc(state.name||"My Team"),oppName=esc(state.opponent||"Opponent");
  const margin=(diff>=0?"You lead by ":"You trail by ")+f(Math.abs(diff))+" modeled FP";
  const kpi=(k,v,n)=>'<div class="overview-kpi"><span>'+k+'</span><b>'+v+'</b><span>'+n+'</span></div>';
