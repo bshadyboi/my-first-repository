@@ -161,3 +161,20 @@ select option{background:#191b34;color:#f4efff}
  .mobilemenu{background:#12142e;box-shadow:-90px 0 0 200vw #01010aaf}
 }
 @media(max-width:610px){.coach-form{background:#151a32}.content{padding-bottom:calc(112px + env(safe-area-inset-bottom))}}
+
+/* iOS home-screen mode: reserve the Dynamic Island/status bar safe area. */
+@media(max-width:870px){
+ .mobileheader{
+  box-sizing:content-box;
+  height:63px;
+  min-height:63px;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+ }
+ .mobilemenu{top:calc(63px + env(safe-area-inset-top,0px))}
+ .bottomnav{padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
+}
+.ocr-diagnostics{margin:12px 0;padding:13px;border:1px solid #68599a;border-radius:12px;background:#211c42;color:#e5dbff}
+.ocr-diagnostics summary{cursor:pointer;font-weight:780}
+.ocr-diagnostics .textinput{font-size:12px;line-height:1.5;max-height:250px;overflow:auto}

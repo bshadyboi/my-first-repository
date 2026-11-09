@@ -20,4 +20,6 @@ jobs:
         with:
           node-version: 22
       - name: Verify syntax and matcher
-        run: node hoopiq/tests/matchup-smoke.cjs
+        run: |
+          node hoopiq/tests/matchup-smoke.cjs
+          node hoopiq/tests/ocr-matching.cjs
