@@ -450,13 +450,13 @@ return head("Trade Analyzer","Test single and multi-player trades using your fan
 card("Why this is useful",'<p class="muted">Compare trades using <strong>fantasy points above a baseline replacement player</strong>, rather than adding up points with no regard for roster depth.</p><p class="muted">Change point values in Settings and return here: the math recalculates immediately. Add two or more players per side to explore multi-player deals.</p><div class="note warn">This balance score is not a winning probability. A production model would need live projections, injury context, roster depth and playoff schedules.</div>')+'</div>'}
 
 
-const imageReview={busy:false,error:"",rawText:"",ambiguous:[],unmatched:[],names:[],selected:new Set(),preview:"",target:"waiver",replaceRoster:false,scans:[],manualMatches:[],resolvedKeys:new Set(),duplicates:0,processed:0,failed:0,progress:""};
+const imageReview={busy:false,error:"",rawText:"",ambiguous:[],unmatched:[],names:[],selected:new Set(),preview:"",target:"waiver",replaceRoster:false,positions:{},positionEdited:new Set(),scans:[],manualMatches:[],resolvedKeys:new Set(),duplicates:0,processed:0,failed:0,progress:""};
 let imageScanSeq=0;
 function clearImageReview(){
  for(const scan of imageReview.scans)if(scan.preview)URL.revokeObjectURL(scan.preview);
  imageReview.busy=false;imageReview.error="";imageReview.rawText="";imageReview.ambiguous=[];imageReview.unmatched=[];
  imageReview.names=[];imageReview.selected=new Set();imageReview.preview="";imageReview.scans=[];
- imageReview.manualMatches=[];imageReview.resolvedKeys=new Set();imageReview.duplicates=0;
+ imageReview.manualMatches=[];imageReview.resolvedKeys=new Set();imageReview.positions={};imageReview.positionEdited=new Set();imageReview.duplicates=0;
  imageReview.processed=0;imageReview.failed=0;imageReview.progress="";imageReview.replaceRoster=false;
 }
 function prepareImageReview(target){
@@ -474,6 +474,13 @@ function reconcileImageReview(){
  imageReview.processed=merged.processed;imageReview.failed=merged.failed;
  imageReview.selected=new Set(imageReview.names.filter(p=>oldIds.has(p.id)?previous.has(p.id):!p.needsReview).map(p=>p.id));
  imageReview.rawText=imageReview.scans.map(s=>s.text||"").join("\n\n");
+ if(imageReview.target==="roster"||imageReview.target==="opponent"){
+  const hints=window.HoopIQLineup.combineHints(imageReview.scans,imageReview.names,currentLineupSlots());
+  for(const p of imageReview.names){
+   if(!imageReview.positionEdited.has(p.id)&&hints[p.id]?.position)imageReview.positions[p.id]=hints[p.id].position;
+  }
+ }
+
 }
 function chosenWaivers(){
  const a=Array.isArray(state.waiverIds)?state.waiverIds:[],result=[];
@@ -560,9 +567,11 @@ function importBatchPanel(target){
  const fileButton=target==="roster"?"openRosterPhoto":target==="opponent"?"opponentPhoto":"openWaiverCamera";
  if(!r.scans.length&&!r.busy)return "";
  const high=r.names.filter(p=>!p.needsReview),low=r.names.filter(p=>p.needsReview);
- const row=p=>'<label class="listitem batch-player"><input type="checkbox" data-'+tag+'="'+p.id+'" '+(r.selected.has(p.id)?"checked":"")+'>'+
+ const row=p=>'<div class="batch-player-position"><label class="listitem batch-player"><input type="checkbox" data-'+tag+'="'+p.id+'" '+(r.selected.has(p.id)?"checked":"")+'>'+
  '<div class="grow"><b>'+esc(p.name)+'</b><div class="muted tiny">'+esc(p.team)+' · '+esc(p.method||"Matched")+'</div></div>'+
- (p.needsReview?'<span class="batch-uncertain">Confirm name</span>':'<span class="batch-verified">Matched</span>')+'</label>';
+ (p.needsReview?'<span class="batch-uncertain">Confirm name</span>':'<span class="batch-verified">Matched</span>')+'</label>'+
+ (target!=="waiver"?'<div class="batch-position-control"><label for="import-pos-'+p.id+'" class="small muted">Yahoo roster slot</label>'+
+ '<select id="import-pos-'+p.id+'" class="select" data-import-position="'+p.id+'">'+lineupOptionHTML(r.positions?.[p.id]||"UNASSIGNED")+'</select></div>':"")+'</div>';
  let html='<section class="import-batch"><div class="row between" style="align-items:flex-start;flex-wrap:wrap"><div><b class="batch-heading">Combined screenshot review</b>'+
  '<p class="muted small" style="margin:4px 0">Screenshots are merged before saving. Existing saved players stay untouched until you confirm.</p></div>'+
  '<span class="pill blue">'+r.scans.length+' image'+(r.scans.length===1?"":"s")+'/pastes</span></div>';
@@ -1009,6 +1018,12 @@ if(window.HoopIQMatchup?.onChange(matchupCtx(),t))return;
  if(t.dataset.reviewroster){const id=Number(t.dataset.reviewroster);if(t.checked)imageReview.selected.add(id);else imageReview.selected.delete(id);return}
  if(t.id==="rosterImportMode"){imageReview.replaceRoster=t.value==="replace";return}
  if(t.id==="rosterFile"&&t.files?.length){scanYahooPhotos(t.files,"roster");return}
+if(t.dataset.importPosition){
+ const id=Number(t.dataset.importPosition);
+ imageReview.positions[id]=t.value;
+ imageReview.positionEdited.add(id);
+ return;
+}
 if(t.dataset.reviewwaiver){const id=Number(t.dataset.reviewwaiver);if(t.checked)imageReview.selected.add(id);else imageReview.selected.delete(id);return}
 if(t.id==="waiverFile"&&t.files?.length){scanYahooPhotos(t.files,"waiver");return}
 if(t.id==="fitplayer"){state.fitPlayer=Number(t.value);persist();render();return}if(t.id==="fitdrop"){state.fitDrop=t.value;persist();render();return}if(t.id==="position"){state.position=t.value;render()}
