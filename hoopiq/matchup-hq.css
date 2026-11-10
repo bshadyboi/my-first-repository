@@ -303,3 +303,9 @@ select option{background:#191b34;color:#f4efff}
  .personal-team-preview{padding:11px}
  .link-lineup-row{grid-template-columns:72px minmax(0,1fr) 40px}
 }
+
+.personal-code-import summary{color:#e0c7ff;font-weight:850;cursor:pointer;padding:9px 2px;list-style:none}
+.personal-code-import summary:before{content:"▣";display:inline-block;margin-right:10px;color:#b888ff}
+.personal-code-import[open] summary{margin-bottom:12px}
+.personal-code-import textarea{display:block;width:100%;min-height:82px;max-height:180px;resize:vertical;background:#141a33;color:#efebff;font-size:12px;line-height:1.5;margin:12px 0}
+.personal-code-import p{margin:9px 0}
