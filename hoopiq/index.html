@@ -412,22 +412,33 @@ function dashboard(){
  '</div></div>';
 }
 
-/* Link-initiated roster import: only the visitor can approve replacing their local My Team. */
+/* Link-initiated roster import: user confirmation required; full private data remains in URL fragment. */
 function personalRosterPreview(){
  if(!pendingPersonalRoster)return "";
- const entries=pendingPersonalRoster.players,slotRows=window.HoopIQLineup.slotList(window.HoopIQLineup.DEFAULT);
- const ownSlot=new Map(entries.map(p=>[p.slot,p]));
- const row=(slot,person)=>'<div class="link-lineup-row"><span class="link-lineup-position">'+esc(window.HoopIQPersonalLink.label(slot))+'</span>'+
- '<strong>'+esc(person?.name||"Empty")+'</strong><span class="muted tiny">'+esc(person?.team||"Open slot")+'</span></div>';
- const starterRows=slotRows.map(slot=>row(slot.key,ownSlot.get(slot.key))).join("");
- const members=kind=>entries.filter(p=>p.slot===kind).map(p=>row(kind,p)).join("");
+ const own=pendingPersonalRoster.players,opp=pendingPersonalRoster.opponentPlayers||[];
+ const slotRows=window.HoopIQLineup.slotList(window.HoopIQLineup.DEFAULT);
+ const renderTeam=(entries,title,showIncomplete)=>{
+  const bySlot=new Map(entries.map(p=>[p.slot,p]));
+  const row=(slot,person)=>'<div class="link-lineup-row"><span class="link-lineup-position">'+esc(window.HoopIQPersonalLink.label(slot))+'</span>'+
+  '<strong>'+esc(person?.name||"Empty")+'</strong><span class="muted tiny">'+esc(person?.team||"Open slot")+'</span></div>';
+  return '<section class="personal-team-preview"><h3>'+esc(title)+' · '+entries.length+' players</h3>'+
+   slotRows.map(slot=>row(slot.key,bySlot.get(slot.key))).join("")+
+   (entries.some(p=>p.slot==="BN")?'<h4>Bench</h4>'+entries.filter(p=>p.slot==="BN").map(p=>row("BN",p)).join(""):"")+
+   (entries.some(p=>p.slot==="IL")?'<h4>Injured List</h4>'+entries.filter(p=>p.slot==="IL").map(p=>row("IL",p)).join(""):"")+
+   (showIncomplete?'<p class="note warn">Only the opponent starters are visible in the screenshot. Existing saved opponent Bench/IL players will be preserved. You can import missing sections later.</p>':"")+
+  '</section>';
+ };
  const previous=state.manualRoster?(state.roster||[]).length:0;
- return card("Lineup from your Yahoo screenshots",
-  '<div class="note blue"><b>'+entries.length+' players ready</b> — nine starters, one empty C slot, four bench and two IL players based on the supplied screenshots. Nothing will change until you confirm.</div>'+
-  '<div class="personal-preview-grid"><div><h3>Starters</h3>'+starterRows+'</div><div><h3>Bench</h3>'+members("BN")+'<h3>Injured List</h3>'+members("IL")+'</div></div>'+
-  '<p class="small muted">This will replace '+(previous?previous+' saved My Team players':"the example team")+' on this device. It preserves your opponent, league scoring, waivers and other settings. Players are checked against NBA records before saving.</p>'+
+ const intro=opp.length?'<div class="note blue"><b>Both fantasy teams are ready.</b> Your 15 players and '+opp.length+' opponent starters have been identified. Review and choose what to apply below; nothing changes until you confirm.</div>':
+  '<div class="note blue"><b>Your lineup is ready.</b> Review the player positions before saving.</div>';
+ return card("Assign your Yahoo screenshots",intro+
+  '<div class="personal-preview-grid">'+renderTeam(own,"My Team",false)+
+  (opp.length?renderTeam(opp,pendingPersonalRoster.opponentName,pendingPersonalRoster.opponentIncomplete):"")+'</div>'+
+  '<div class="personal-apply-options"><label><input type="checkbox" id="personalApplyMine" checked> Apply My Team ('+own.length+' players)</label>'+
+  (opp.length?'<label><input type="checkbox" id="personalApplyOpponent" checked> Apply '+esc(pendingPersonalRoster.opponentName)+' ('+opp.length+' confirmed starters; keep any existing bench/IL)</label>':"")+'</div>'+
+  '<p class="small muted">Applying My Team replaces '+(previous?previous+' saved players':'the example players')+' on this device; opponent import merges known starters with any existing opponent bench/IL. League scoring and other settings are preserved. All IDs and teams are checked before anything is saved.</p>'+
   (personalRosterError?'<div class="note warn" role="alert">'+esc(personalRosterError)+'</div>':"")+
-  '<div class="buttonrow">'+button("applyPersonalRoster",personalRosterBusy?"Verifying NBA players…":"✓ Apply all 15 positions","primary",personalRosterBusy?"disabled":"")+
+  '<div class="buttonrow">'+button("applyPersonalRoster",personalRosterBusy?"Verifying all players…":"✓ Apply selected lineups","primary",personalRosterBusy?"disabled":"")+
   button("cancelPersonalRoster","Not now","ghost",personalRosterBusy?"disabled":"")+'</div>');
 }
 function dismissPersonalRosterLink(){
@@ -436,16 +447,23 @@ function dismissPersonalRosterLink(){
 }
 async function applyPersonalRosterLink(){
  if(!pendingPersonalRoster||personalRosterBusy)return;
- const imported=pendingPersonalRoster.players;
- if(state.manualRoster&&(state.roster||[]).length&&!confirm("Replace your current My Team roster with the 15 players from your screenshots? This will not change your real Yahoo team."))return;
+ const applyMine=$("personalApplyMine")?.checked!==false;
+ const applyOpponent=!!pendingPersonalRoster.opponentPlayers?.length&&$("personalApplyOpponent")?.checked!==false;
+ if(!applyMine&&!applyOpponent){personalRosterError="Select at least one team to apply.";render();return}
+ const own=applyMine?pendingPersonalRoster.players:[];
+ const other=applyOpponent?pendingPersonalRoster.opponentPlayers:[];
+ if(applyMine&&state.manualRoster&&(state.roster||[]).length&&!confirm("Replace your current My Team roster with the "+own.length+" players from your screenshot? Your opponent and other settings will not be cleared."))return;
  personalRosterBusy=true;personalRosterError="";render();
  try{
-  // Read season stats before constructing the new team. Zero-game players require a current team roster lookup.
+  const imported=[...own,...other];
   if(!nbaPlayers.length)await updateNBA();
   const matched=new Map(),unresolved=[];
   const byId=id=>nbaPlayers.find(p=>Number(p.id)===id);
   const check=(record,item)=>record&&Number(record.id)===item.id&&normalizeName(record.name)===normalizeName(item.name)&&normalizeTeam(record.team)===normalizeTeam(item.team);
-  for(const item of imported){const current=byId(item.id);if(check(current,item))matched.set(item.id,current);else unresolved.push(item)}
+  for(const item of imported){
+   const existing=matched.get(item.id)||byId(item.id)||state.cachePlayers?.[item.id];
+   if(check(existing,item))matched.set(item.id,existing);else unresolved.push(item);
+  }
   const teams=[...new Set(unresolved.map(item=>item.team))];
   const fromRosters=new Map();
   await Promise.all(teams.map(async team=>{
@@ -467,17 +485,33 @@ async function applyPersonalRosterLink(){
    if(check(p,item))matched.set(item.id,p);
   }
   const notFound=imported.filter(item=>!matched.has(item.id));
-  if(notFound.length)throw Error("Could not verify these players: "+notFound.map(p=>p.name).join(", ")+". Please try again when NBA data is available.");
-  // All players verified first. Only now replace the saved local My Team.
+  if(notFound.length)throw Error("Could not verify: "+notFound.map(p=>p.name).join(", ")+". No changes saved. Try again when the NBA feed is available.");
+  // Atomic write: every requested player was validated before touching saved rosters.
   const nextCache={...(state.cachePlayers||{})};
   for(const [id,p] of matched)nextCache[id]=p;
-  state.roster=imported.map(p=>p.id);
-  state.rosterPositions=Object.fromEntries(imported.map(p=>[p.id,p.slot]));
-  state.lineupSlots=[...window.HoopIQLineup.DEFAULT];state.lineupCount=10;
+  if(applyMine){
+   state.roster=own.map(p=>p.id);
+   state.rosterPositions=Object.fromEntries(own.map(p=>[p.id,p.slot]));
+   state.lineupSlots=[...window.HoopIQLineup.DEFAULT];state.lineupCount=10;
+   state.manualRoster=true;state.fitDrop="";state.importOpen=false;
+  }
+  if(applyOpponent){
+   const keep=Array.isArray(state.opponentRoster)?state.opponentRoster:[];
+   const next=[...new Set([...other.map(p=>p.id),...keep])];
+   let assignments={...(state.opponentPositions||{})};
+   // New starter slots take priority; existing opponent players are never deleted.
+   for(const player of other){
+    assignments=window.HoopIQLineup.move(next,assignments,player.id,player.slot,currentLineupSlots());
+   }
+   state.opponentRoster=next;
+   state.opponentPositions=assignments;
+   state.opponent= pendingPersonalRoster.opponentName;
+   state.opponentManual=true;state.opponentImportOpen=false;
+  }
   state.cachePlayers=nextCache;
-  state.manualRoster=true;state.fitDrop="";state.importOpen=false;state.view="league";
+  state.view=applyOpponent?"opponent":"league";
   dismissPersonalRosterLink();persist();render();
-  toast("Your 15 Yahoo players and positions are saved in HoopIQ");
+  toast((applyMine?"My Team":"")+(applyMine&&applyOpponent?" and ":"")+(applyOpponent?"Opponent":"")+" saved in HoopIQ");
  }catch(e){
   personalRosterError=String(e.message||e);
  }finally{
