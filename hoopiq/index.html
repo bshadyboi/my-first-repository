@@ -61,7 +61,7 @@
  .bottomnav button{font-size:10px;min-height:43px;justify-content:center}.bottomnav button i{font-size:20px}
  .content{padding-bottom:calc(110px + env(safe-area-inset-bottom))}.hero{padding:20px}.pagehead{margin-bottom:15px}
 }
-</style><link rel="stylesheet" href="/theme.css?v=3"/><link rel="stylesheet" href="/matchup-hq.css?v=2"/></head><body><div id="app"></div><script src="/roster-ocr.js?v=3"></script><script src="/lineup-slots.js?v=1"></script><script src="/import-batch.js?v=1"></script><script src="/matchup-hq.js?v=2"></script><script>
+</style><link rel="stylesheet" href="/theme.css?v=3"/><link rel="stylesheet" href="/matchup-hq.css?v=2"/></head><body><div id="app"></div><script src="/roster-ocr.js?v=3"></script><script src="/personal-roster-link.js?v=1"></script><script src="/lineup-slots.js?v=1"></script><script src="/import-batch.js?v=1"></script><script src="/matchup-hq.js?v=2"></script><script>
 (function(){
 "use strict";
 const storage="hoopiq-preview-v2";
@@ -99,6 +99,9 @@ const players=raw.map((a,i)=>({id:i+1,name:a[0],team:a[1],pos:a[2],pts:a[3],reb:
 const defaultState=()=>({waiverIds:[],waiverQuery:'',pasteOpen:false,weekStart:weekMonday(),fitPlayer:0,fitDrop:'',lineupCount:10,lineupSlots:["PG","SG","G","SF","PF","F","C","C","UTIL","UTIL"],rosterPositions:{},opponentPositions:{},fitOpp:'',manualRoster:false,manualQuery:'',cachePlayers:{},view:"dashboard",name:"My Fantasy Team",importOpen:false,waiverImportOpen:false,manualAddOpen:false,coachHistory:[],league:"Yahoo Points League (Demo)",opponent:"Opponent",opponentRoster:[],opponentManual:false,opponentImportOpen:false,opponentPasteOpen:false,opponentManualAddOpen:false,opponentQuery:"",watch:[5,19],roster:[1,2,6,7,11,13,17,18],drafted:[],give:[7],get:[6],scoring:{...defs},search:"",position:"ALL",sort:"fp",reverse:false,selected:null,menu:false});
 let saved={};try{saved=JSON.parse(localStorage.getItem(storage)||"{}")||{}}catch(e){}
 let state={...defaultState(),...saved,view:"dashboard",selected:null,menu:false,search:"",scoring:{...defs,...(saved.scoring||{})}};
+let pendingPersonalRoster=window.HoopIQPersonalLink?.fromHash(window.location.hash)||null;
+let personalRosterBusy=false,personalRosterError="";
+if(pendingPersonalRoster)state.view="league";
 const $=id=>document.getElementById(id);
 const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let nbaPlayers=[];let nbaMeta={status:'loading',updated:'',error:'',categories:[],scores:[]};
@@ -408,12 +411,121 @@ function dashboard(){
  card("Your AI Coach",'<p class="small muted">Ask who fits your roster, where to stream, or whether a pickup makes sense.</p>'+button("coach","Ask HoopIQ ✦","primary full"))+
  '</div></div>';
 }
+
+/* Link-initiated roster import: user confirmation required; full private data remains in URL fragment. */
+function personalRosterPreview(){
+ if(!pendingPersonalRoster)return "";
+ const own=pendingPersonalRoster.players,opp=pendingPersonalRoster.opponentPlayers||[];
+ const slotRows=window.HoopIQLineup.slotList(window.HoopIQLineup.DEFAULT);
+ const renderTeam=(entries,title,showIncomplete)=>{
+  const bySlot=new Map(entries.map(p=>[p.slot,p]));
+  const row=(slot,person)=>'<div class="link-lineup-row"><span class="link-lineup-position">'+esc(window.HoopIQPersonalLink.label(slot))+'</span>'+
+  '<strong>'+esc(person?.name||"Empty")+'</strong><span class="muted tiny">'+esc(person?.team||"Open slot")+'</span></div>';
+  return '<section class="personal-team-preview"><h3>'+esc(title)+' · '+entries.length+' players</h3>'+
+   slotRows.map(slot=>row(slot.key,bySlot.get(slot.key))).join("")+
+   (entries.some(p=>p.slot==="BN")?'<h4>Bench</h4>'+entries.filter(p=>p.slot==="BN").map(p=>row("BN",p)).join(""):"")+
+   (entries.some(p=>p.slot==="IL")?'<h4>Injured List</h4>'+entries.filter(p=>p.slot==="IL").map(p=>row("IL",p)).join(""):"")+
+   (showIncomplete?'<p class="note warn">Only the opponent starters are visible in the screenshot. Existing saved opponent Bench/IL players will be preserved. You can import missing sections later.</p>':"")+
+  '</section>';
+ };
+ const previous=state.manualRoster?(state.roster||[]).length:0;
+ const intro=opp.length?'<div class="note blue"><b>Both fantasy teams are ready.</b> Your 15 players and '+opp.length+' opponent starters have been identified. Review and choose what to apply below; nothing changes until you confirm.</div>':
+  '<div class="note blue"><b>Your lineup is ready.</b> Review the player positions before saving.</div>';
+ return card("Assign your Yahoo screenshots",intro+
+  '<div class="personal-preview-grid">'+renderTeam(own,"My Team",false)+
+  (opp.length?renderTeam(opp,pendingPersonalRoster.opponentName,pendingPersonalRoster.opponentIncomplete):"")+'</div>'+
+  '<div class="personal-apply-options"><label><input type="checkbox" id="personalApplyMine" checked> Apply My Team ('+own.length+' players)</label>'+
+  (opp.length?'<label><input type="checkbox" id="personalApplyOpponent" checked> Apply '+esc(pendingPersonalRoster.opponentName)+' ('+opp.length+' confirmed starters; keep any existing bench/IL)</label>':"")+'</div>'+
+  '<p class="small muted">Applying My Team replaces '+(previous?previous+' saved players':'the example players')+' on this device; opponent import merges known starters with any existing opponent bench/IL. League scoring and other settings are preserved. All IDs and teams are checked before anything is saved.</p>'+
+  (personalRosterError?'<div class="note warn" role="alert">'+esc(personalRosterError)+'</div>':"")+
+  '<div class="buttonrow">'+button("applyPersonalRoster",personalRosterBusy?"Verifying all players…":"✓ Apply selected lineups","primary",personalRosterBusy?"disabled":"")+
+  button("cancelPersonalRoster","Not now","ghost",personalRosterBusy?"disabled":"")+'</div>');
+}
+function dismissPersonalRosterLink(){
+ pendingPersonalRoster=null;personalRosterBusy=false;personalRosterError="";
+ if(window.location.hash.startsWith(window.HoopIQPersonalLink.PREFIX))history.replaceState(null,"",window.location.pathname+window.location.search);
+}
+async function applyPersonalRosterLink(){
+ if(!pendingPersonalRoster||personalRosterBusy)return;
+ const applyMine=$("personalApplyMine")?.checked!==false;
+ const applyOpponent=!!pendingPersonalRoster.opponentPlayers?.length&&$("personalApplyOpponent")?.checked!==false;
+ if(!applyMine&&!applyOpponent){personalRosterError="Select at least one team to apply.";render();return}
+ const own=applyMine?pendingPersonalRoster.players:[];
+ const other=applyOpponent?pendingPersonalRoster.opponentPlayers:[];
+ if(applyMine&&state.manualRoster&&(state.roster||[]).length&&!confirm("Replace your current My Team roster with the "+own.length+" players from your screenshot? Your opponent and other settings will not be cleared."))return;
+ personalRosterBusy=true;personalRosterError="";render();
+ try{
+  const imported=[...own,...other];
+  if(!nbaPlayers.length)await updateNBA();
+  const matched=new Map(),unresolved=[];
+  const byId=id=>nbaPlayers.find(p=>Number(p.id)===id);
+  const check=(record,item)=>record&&Number(record.id)===item.id&&normalizeName(record.name)===normalizeName(item.name)&&normalizeTeam(record.team)===normalizeTeam(item.team);
+  for(const item of imported){
+   const existing=matched.get(item.id)||byId(item.id)||state.cachePlayers?.[item.id];
+   if(check(existing,item))matched.set(item.id,existing);else unresolved.push(item);
+  }
+  const teams=[...new Set(unresolved.map(item=>item.team))];
+  const fromRosters=new Map();
+  await Promise.all(teams.map(async team=>{
+   try{
+    const response=await fetch("/api/nba?resource=roster&team="+encodeURIComponent(team),{cache:"no-store"});
+    if(!response.ok)return;
+    const data=await response.json();
+    if(!data.ok)return;
+    for(const record of (data.data?.athletes||[]).flatMap(x=>Array.isArray(x.items)?x.items:[x])){
+     const id=Number(record.id);
+     if(!Number.isSafeInteger(id)||!record.displayName)continue;
+     fromRosters.set(id,{id,name:record.displayName,team,pos:record.position?.abbreviation||"UTIL",
+      pts:0,reb:0,ast:0,stl:0,blk:0,tov:0,threes:0,games:0,own:0,available:false,source:"roster",statsUnavailable:true});
+    }
+   }catch(e){}
+  }));
+  for(const item of unresolved){
+   const p=fromRosters.get(item.id);
+   if(check(p,item))matched.set(item.id,p);
+  }
+  const notFound=imported.filter(item=>!matched.has(item.id));
+  if(notFound.length)throw Error("Could not verify: "+notFound.map(p=>p.name).join(", ")+". No changes saved. Try again when the NBA feed is available.");
+  // Atomic write: every requested player was validated before touching saved rosters.
+  const nextCache={...(state.cachePlayers||{})};
+  for(const [id,p] of matched)nextCache[id]=p;
+  if(applyMine){
+   state.roster=own.map(p=>p.id);
+   state.rosterPositions=Object.fromEntries(own.map(p=>[p.id,p.slot]));
+   state.lineupSlots=[...window.HoopIQLineup.DEFAULT];state.lineupCount=10;
+   state.manualRoster=true;state.fitDrop="";state.importOpen=false;
+  }
+  if(applyOpponent){
+   const keep=Array.isArray(state.opponentRoster)?state.opponentRoster:[];
+   const next=[...new Set([...other.map(p=>p.id),...keep])];
+   let assignments={...(state.opponentPositions||{})};
+   // New starter slots take priority; existing opponent players are never deleted.
+   for(const player of other){
+    assignments=window.HoopIQLineup.move(next,assignments,player.id,player.slot,currentLineupSlots());
+   }
+   state.opponentRoster=next;
+   state.opponentPositions=assignments;
+   state.opponent= pendingPersonalRoster.opponentName;
+   state.opponentManual=true;state.opponentImportOpen=false;
+  }
+  state.cachePlayers=nextCache;
+  state.view=applyOpponent?"opponent":"league";
+  dismissPersonalRosterLink();persist();render();
+  toast((applyMine?"My Team":"")+(applyMine&&applyOpponent?" and ":"")+(applyOpponent?"Opponent":"")+" saved in HoopIQ");
+ }catch(e){
+  personalRosterError=String(e.message||e);
+ }finally{
+  personalRosterBusy=false;render();
+ }
+}
+
 function league(){
  const rr=sampleRoster(),manual=!!state.manualRoster,available=nbaPlayers.length?nbaPlayers:players;
  let html='<div class="pagehead"><div><div class="eyebrow">YOUR TEAM</div><h1>My roster</h1><p>Yahoo-style starters, Bench and IL. Move, swap or add players without changing your real Yahoo team.</p></div><div class="buttonrow">'+
  button("openRosterImport","📷 "+(state.importOpen?"Close importer":"Import screenshots"),"primary")+
  button("teamManualToggle","＋ Add manually","ghost")+'</div></div>';
- if(!manual)html+='<div class="note warn" style="margin-bottom:15px">These are example players. Import your Yahoo roster or add names manually to personalize HoopIQ.</div>';
+ if(pendingPersonalRoster)html+=personalRosterPreview()+'<div style="height:15px"></div>';
+ if(!manual&&!pendingPersonalRoster)html+='<div class="note warn" style="margin-bottom:15px">These are example players. Import your Yahoo roster or add names manually to personalize HoopIQ.</div>';
  if(state.importOpen||!manual)html+=rosterImportPanel()+'<div style="height:14px"></div>';
  if(state.manualAddOpen){
   let panel='<div class="note blue">This changes HoopIQ only, not Yahoo Fantasy.</div>';
@@ -972,6 +1084,8 @@ if(a==="saveLineupSlots"){
 if(a==="fitcapacity"){toast("Edit starting positions under Settings");route("settings");return}
 if(a==="fitodds"){state.fitOpp=$("fitopponent").value;persist();render();return}
 
+if(a==="applyPersonalRoster"){applyPersonalRosterLink();return}
+if(a==="cancelPersonalRoster"){dismissPersonalRosterLink();render();return}
 if(a==="mystart"){if(confirm("Replace sample players with an empty manual roster? This does not change Yahoo.")){state.manualRoster=true;state.roster=[];state.rosterPositions={};state.cachePlayers={};state.fitDrop="";persist();render()}return}
 if(a==="focusRosterSearch"){state.manualAddOpen=true;render();$("manualquery")?.focus();$("manualquery")?.scrollIntoView({behavior:"smooth",block:"center"});return}
 if(a==="openRosterPhoto"){$("rosterFile")?.click();return}
@@ -1067,6 +1181,12 @@ if(t.id==="importfile"&&t.files&&t.files[0]){const reader=new FileReader();reade
 document.addEventListener("input",e=>{const t=e.target;if(window.HoopIQMatchup?.onInput(matchupCtx(),t))return;if(t.id==="waiverQuery"){const pos=t.selectionStart;state.waiverQuery=t.value;render();const el=$("waiverQuery");if(el){el.focus();el.setSelectionRange(pos,pos)}return}
 if(t.id==="manualquery"){const caret=t.selectionStart;state.manualQuery=t.value;render();const field=$("manualquery");if(field){field.focus();field.setSelectionRange(caret,caret)}return}if(t.id==="playersearch"){const a=t.selectionStart;state.search=t.value;render();const input=$("playersearch");if(input){input.focus();input.setSelectionRange(a,a)}}});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&state.selected){state.selected=null;render()}});
+window.addEventListener("hashchange",()=>{
+ pendingPersonalRoster=window.HoopIQPersonalLink?.fromHash(window.location.hash)||null;
+ personalRosterError="";personalRosterBusy=false;
+ if(pendingPersonalRoster){state.view="league";window.scrollTo(0,0)}
+ render();
+});
 render();
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
 refreshCoachMode();updateNBA();updateScores();loadWeek();setInterval(updateNBA,20*60*1000);setInterval(updateScores,60*1000);
