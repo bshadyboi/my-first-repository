@@ -519,11 +519,30 @@ async function applyPersonalRosterLink(){
  }
 }
 
+function pastePersonalRosterCode(){
+ const input=$("personalImportCode");
+ const raw=String(input?.value||"").trim();
+ if(!raw){toast("Paste the roster code first");return}
+ const anchor=window.HoopIQPersonalLink.PREFIX;
+ const pos=raw.indexOf(anchor);
+ const hash=pos>=0?raw.slice(pos):anchor+raw.replace(/^#/,"");
+ const parsed=window.HoopIQPersonalLink.fromHash(hash);
+ if(!parsed){toast("Invalid roster import code. Copy the entire code and try again.");return}
+ pendingPersonalRoster=parsed;
+ personalRosterError="";personalRosterBusy=false;
+ state.view="league";render();
+ toast("Review both rosters and tap Apply selected lineups");
+}
+
 function league(){
  const rr=sampleRoster(),manual=!!state.manualRoster,available=nbaPlayers.length?nbaPlayers:players;
  let html='<div class="pagehead"><div><div class="eyebrow">YOUR TEAM</div><h1>My roster</h1><p>Yahoo-style starters, Bench and IL. Move, swap or add players without changing your real Yahoo team.</p></div><div class="buttonrow">'+
  button("openRosterImport","📷 "+(state.importOpen?"Close importer":"Import screenshots"),"primary")+
  button("teamManualToggle","＋ Add manually","ghost")+'</div></div>';
+ html+=card("Import the roster code from ChatGPT",
+  '<details class="personal-code-import"><summary>Paste roster import code</summary><p class="muted small">For your installed iPhone Home Screen app: copy the private roster code from ChatGPT, paste it here, then review both teams and confirm. This avoids saving to a separate Safari session.</p>'+
+  '<textarea id="personalImportCode" class="textinput" spellcheck="false" autocomplete="off" placeholder="Paste roster import code…"></textarea>'+
+  '<div class="buttonrow">'+button("previewPersonalImportCode","Preview and assign both teams","primary xs")+'</div></details>')+'<div style="height:15px"></div>';
  if(pendingPersonalRoster)html+=personalRosterPreview()+'<div style="height:15px"></div>';
  if(!manual&&!pendingPersonalRoster)html+='<div class="note warn" style="margin-bottom:15px">These are example players. Import your Yahoo roster or add names manually to personalize HoopIQ.</div>';
  if(state.importOpen||!manual)html+=rosterImportPanel()+'<div style="height:14px"></div>';
@@ -1084,6 +1103,7 @@ if(a==="saveLineupSlots"){
 if(a==="fitcapacity"){toast("Edit starting positions under Settings");route("settings");return}
 if(a==="fitodds"){state.fitOpp=$("fitopponent").value;persist();render();return}
 
+if(a==="previewPersonalImportCode"){pastePersonalRosterCode();return}
 if(a==="applyPersonalRoster"){applyPersonalRosterLink();return}
 if(a==="cancelPersonalRoster"){dismissPersonalRosterLink();render();return}
 if(a==="mystart"){if(confirm("Replace sample players with an empty manual roster? This does not change Yahoo.")){state.manualRoster=true;state.roster=[];state.rosterPositions={};state.cachePlayers={};state.fitDrop="";persist();render()}return}
