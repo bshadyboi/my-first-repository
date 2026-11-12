@@ -262,30 +262,40 @@
   c.state.weekStart=week;c.persist();clear();c.render();c.toast("Yahoo matchup saved for "+week);
   if(c.weekInfo?.start!==week&&c.loadWeek)c.loadWeek();
  }
- async function crop(file,side,contrast){
-  if(typeof createImageBitmap!=="function")return file;
-  const bmp=await createImageBitmap(file);
+ async function crop(file,side,contrast,bitmap=null){
+  if(typeof createImageBitmap!=="function"&&!bitmap)return file;
+  const bmp=bitmap||await createImageBitmap(file);
   try{
-   const x=side==="left"?0:Math.floor(bmp.width*.50),w=side==="left"?Math.ceil(bmp.width*.51):bmp.width-x;
-   const y=Math.floor(bmp.height*.11),h=Math.floor(bmp.height*.83);
-   const scale=Math.min(2.3,1250/w,3200/h);
-   const canvas=document.createElement("canvas");canvas.width=Math.floor(w*scale);canvas.height=Math.floor(h*scale);
+   const W=bmp.width,H=bmp.height;
+   const rect=side==="center"?[.407,.195,.10,.83]:
+    side==="header"?[.035,.93,.12,.41]:
+    side==="left"?[0,.51,.11,.83]:[.49,.51,.11,.83];
+   const x=Math.floor(W*rect[0]),w=Math.ceil(W*rect[1]);
+   const y=Math.floor(H*rect[2]),h=Math.ceil(H*rect[3]);
+   const scale=Math.min(side==="header"?2.7:2.6,1450/w,3500/h);
+   const canvas=document.createElement("canvas");
+   canvas.width=Math.max(1,Math.floor(w*scale));canvas.height=Math.max(1,Math.floor(h*scale));
    const ctx=canvas.getContext("2d",{willReadFrequently:true});
    ctx.drawImage(bmp,x,y,w,h,0,0,canvas.width,canvas.height);
    if(contrast){
     const image=ctx.getImageData(0,0,canvas.width,canvas.height),v=image.data;
-    for(let i=0;i<v.length;i+=4){const lum=v[i]*.299+v[i+1]*.587+v[i+2]*.114;const ink=lum>123?20:255;v[i]=v[i+1]=v[i+2]=ink}
+    for(let i=0;i<v.length;i+=4){
+     const lum=v[i]*.299+v[i+1]*.587+v[i+2]*.114;
+     const ink=lum>122?22:250;
+     v[i]=v[i+1]=v[i+2]=ink;
+    }
     ctx.putImageData(image,0,0);
    }
    return canvas;
-  }finally{bmp.close?.()}
+  }finally{if(!bitmap)bmp.close?.()}
  }
  async function scan(c,list){
   if(s.busy)return;
   const inputs=Array.from(list||[]);
   const files=inputs.slice(0,Math.max(0,6-s.files.length)).filter(f=>f.type?.startsWith("image/")&&f.size<=15*1024*1024);
   if(!files.length){s.open=true;s.error="Choose up to six screenshots, 15 MB or smaller each.";c.render();return}
-  const added=files.map(f=>({id:"snap-"+(++nextId),name:f.name||"Screenshot",preview:URL.createObjectURL(f),file:f,leftText:"",rightText:"",manualSide:"",status:"queued"}));
+  const added=files.map(f=>({id:"snap-"+(++nextId),name:f.name||"Screenshot",preview:URL.createObjectURL(f),file:f,
+   leftText:"",rightText:"",leftLines:[],rightLines:[],centerLines:[],headerText:"",headerScore:null,manualSide:"",status:"queued"}));
   s.files.push(...added);s.open=true;s.busy=true;s.error="";c.render();
   let worker;
   try{
@@ -298,23 +308,62 @@
     const el=c.$("weeklyOCRProgress");if(el&&m.progress!=null)el.textContent=s.progress+" · "+Math.round(m.progress*100)+"%";
    }});
    await worker.setParameters({tessedit_pageseg_mode:"11"});
+   const read=async image=>{
+    const result=await worker.recognize(image,{}, {tsv:true});
+    return {text:String(result.data?.text||""),
+     rows:layout()?.lines(result.data,image.width||1000,image.height||2000)||[]};
+   };
    for(let i=0;i<added.length;i++){
     const f=added[i];f.status="scanning";
-    for(const side of ["left","right"]){
-     s.progress="Screenshot "+(i+1)+"/"+added.length+" · reading "+side+" column";c.render();
-     const p=await worker.recognize(await crop(f.file,side,true));
-     let text=String(p.data?.text||"");
-     if((root.HoopIQRosterOCR?.getMatches(text,pool(c))?.matches?.length||0)<2){
-      const retry=await worker.recognize(await crop(f.file,side,false));
-      text+="\n"+String(retry.data?.text||"");
+    const image=typeof createImageBitmap==="function"?await createImageBitmap(f.file):null;
+    try{
+     for(const side of ["left","right"]){
+      s.progress="Screenshot "+(i+1)+"/"+added.length+" · scanning "+side+" team";c.render();
+      const enhanced=await crop(f.file,side,true,image);
+      let result=await read(enhanced);
+      if((root.HoopIQRosterOCR?.getMatches(result.text,pool(c))?.matches?.length||0)<3||!result.rows.length){
+       const plain=await read(await crop(f.file,side,false,image));
+       if(plain.rows.length>result.rows.length)result.rows=plain.rows;
+       result.text+="\n"+plain.text;
+      }
+      f[side+"Text"]=result.text.slice(0,20000);
+      f[side+"Lines"]=result.rows;
      }
-     f[side+"Text"]=text.slice(0,20000);
-    }
-    if(c.loadRosterForOCR)await c.loadRosterForOCR(f.leftText+"\n"+f.rightText);
-    f.status="done";f.file=null;parse(c);c.render();
+     s.progress="Screenshot "+(i+1)+"/"+added.length+" · reading Yahoo position labels";c.render();
+     const central=await read(await crop(f.file,"center",false,image));
+     f.centerLines=central.rows;
+     if((layout()?.roleRows(f.centerLines).length||0)<4){
+      const alternative=await read(await crop(f.file,"center",true,image));
+      const roleA=layout()?.roleRows(f.centerLines).length||0;
+      const roleB=layout()?.roleRows(alternative.rows).length||0;
+      if(roleB>roleA)f.centerLines=alternative.rows;
+     }
+     s.progress="Screenshot "+(i+1)+"/"+added.length+" · reading projected matchup totals";c.render();
+     const header=await read(await crop(f.file,"header",false,image));
+     f.headerText=header.text;let scores=layout()?.scoreboard(header.rows)||{left:{},right:{},week:""};
+     if(!scores.left.projection||!scores.right.projection){
+      const contrast=await read(await crop(f.file,"header",true,image));
+      const alternate=layout()?.scoreboard(contrast.rows)||{left:{},right:{},week:""};
+      scores={left:{projection:scores.left.projection||alternate.left.projection,
+       games:scores.left.games||alternate.left.games},
+       right:{projection:scores.right.projection||alternate.right.projection,
+        games:scores.right.games||alternate.right.games},
+       week:scores.week||alternate.week};
+      f.headerText+="\n"+contrast.text;
+     }
+     f.headerScore=scores;
+     // Improve team name/header detection if it was missed in the taller side crops.
+     const headerLines=header.rows;
+     for(const side of ["left","right"]){
+      const lines=headerLines.filter(line=>(side==="left"?line.x<.5:line.x>=.5)).map(line=>line.text);
+      if(lines.length)f[side+"Text"]+="\n"+lines.join("\n");
+     }
+     if(c.loadRosterForOCR)await c.loadRosterForOCR(f.leftText+"\n"+f.rightText);
+     f.status="done";f.file=null;parse(c);c.render();
+    }finally{image?.close?.()}
    }
   }catch(e){
-   s.error="Unable to finish scanning: "+String(e.message||e)+". Correct OCR text or try clearer screenshots.";
+   s.error="Unable to finish scanning: "+String(e.message||e)+". The reviewed players stay unchanged. Try clearer screenshots.";
    for(const f of added)if(f.status!=="done")f.status="error";
   }finally{
    if(worker)try{await worker.terminate()}catch(e){}
