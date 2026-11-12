@@ -95,7 +95,7 @@
      found.set(p.id,player);keep.push(player);
     }
     const positioned=layout()?.labeled(keep,f[rawSide+"Lines"]||[],f.centerLines||[])||[];
-    observations.push({id:f.id,rows:positioned});
+    observations.push({id:f.id,rows:positioned,hasHeader:Boolean(f.headerScore?.left?.projection||f.headerScore?.right?.projection)});
     const summary=extractTotals(raw);
     const header=f.headerScore?.[rawSide]||{};
     const projection=header.projection||summary.points,games=header.games||summary.games;
@@ -137,7 +137,9 @@
    (key==="UNASSIGNED"?"Needs review":key==="BN"?"Bench":key==="IL"?"Injured List":key.replace(/:1$/,"").replace(/:2$/," (2)"))+'</option>').join("");
  }
  function row(p,side){
-  return '<div class="weekly-import-person"><div><b>'+esc(p.name)+'</b><small>'+esc(p.team)+'</small></div>'+
+  return '<div class="weekly-import-person"><div><b>'+esc(p.name)+'</b><small>'+esc(p.team)+'</small>'+
+   (p.slotEvidence?'<small class="weekly-role-evidence '+(p.slotConfidence==="strong"?"verified":"suggested")+'">'+
+   esc(p.slotConfidence==="strong"?"Yahoo slot detected":"Suggested · verify")+'</small>':"")+'</div>'+
    '<select class="select" data-weekly-slot="'+side+":"+p.id+'" aria-label="Lineup slot for '+esc(p.name)+'">'+selectSlots(p.slot)+'</select>'+
    '<button class="btn ghost xs" data-action="weeklyRemove" data-side="'+side+'" data-id="'+p.id+'">×</button></div>';
  }
@@ -205,9 +207,14 @@
     '<label>'+label+'<input id="weekly-'+key+'" class="textinput" type="'+type+'" '+
     (type==="number"?'step="0.01" min="0" ':"")+'value="'+esc(s[key]||(key==="week"?c.state.weekStart:""))+
     '" placeholder="'+(key.endsWith("Games")?"0/43":"")+'"></label>').join("")+'</div>';
-   html+='<div class="weekly-review">'+["home","away"].map(side=>'<div><h3>'+ (side==="home"?"Your team":"Opponent")+' · '+s[side].length+' players</h3>'+
-    (s[side].length?s[side].map(p=>row(p,side)).join(""):'<p class="muted small">No player names detected yet. Upload another screenshot or correct OCR text below.</p>')+'</div>').join("")+'</div>';
-   html+='<p class="small muted">Review positions carefully. Screenshots taken mid-scroll may not show every slot; unrecognized spots stay marked “Needs review” rather than being guessed.</p>';
+   html+='<div class="weekly-review">'+["home","away"].map(side=>{
+    const assigned=s[side].filter(p=>p.slot!=="UNASSIGNED").length;
+    const needs=s[side].length-assigned;
+    return '<div><h3>'+ (side==="home"?"Your team":"Opponent")+' · '+s[side].length+' players</h3>'+
+    '<p class="weekly-assignment-count">'+assigned+' positions filled'+(needs?' · '+needs+' need review':' · review suggestions')+'</p>'+
+    (s[side].length?s[side].map(p=>row(p,side)).join(""):'<p class="muted small">No player names detected yet. Upload another screenshot or correct OCR text below.</p>')+'</div>';
+   }).join("")+'</div>';
+   html+='<p class="small muted">Position labels are read from Yahoo’s center column. Suggestions from roster order require your review. Any cropped, missed or ambiguous slots remain “Needs review.”</p>';
    html+='<details class="weekly-ocr-edit"><summary>Correct OCR text / missed names</summary>'+s.files.filter(f=>f.status==="done").map(f=>
     '<div class="weekly-ocr-file"><b>'+esc(f.name)+'</b>'+["home","away"].map(side=>
     '<label>'+(side==="home"?"Screenshot LEFT column":"Screenshot RIGHT column")+'<textarea data-weekly-raw="'+esc(f.id)+":"+side+'">'+esc(f[(side==="home"?"left":"right")+"Text"]||f[side+"Text"]||"")+'</textarea></label>').join("")+
@@ -444,9 +451,12 @@
   if(t.id==="weeklySavedWeek"&&validWeek(t.value)){
    c.state.weekStart=t.value;c.persist();c.render();if(c.loadWeek)c.loadWeek();return true;
   }
+  if(t.id==="weekly-week"){
+   s.week=String(t.value||"");s.weekEdited=true;return true;
+  }
   if(t.dataset?.weeklySlot){
    const [side,id]=t.dataset.weeklySlot.split(":");
-   const row=s[side]?.find(x=>x.id===Number(id));if(row){row.slot=t.value;s.manualSlots[side][Number(id)]=t.value;}return true;
+   const row=s[side]?.find(x=>x.id===Number(id));if(row){row.slot=t.value;row.slotEvidence="Manually reviewed";row.slotConfidence="manual";s.manualSlots[side][Number(id)]=t.value;}return true;
   }
   return false;
  }
