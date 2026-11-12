@@ -1,13 +1,15 @@
 /* Yahoo weekly matchup image importer. Local data only; no Yahoo API writes. */
 (function(root,factory){
- const x=factory();if(typeof module!=="undefined"&&module.exports)module.exports=x;
+ const x=factory(root);if(typeof module!=="undefined"&&module.exports)module.exports=x;
  if(root)root.HoopIQWeeklyImport=x;
-})(typeof window!=="undefined"?window:null,function(){
+})(typeof window!=="undefined"?window:null,function(root){
  "use strict";
  const slots=["PG:1","SG:1","G:1","SF:1","PF:1","F:1","C:1","C:2","UTIL:1","UTIL:2"];
  const allSlots=["UNASSIGNED",...slots,"BN","IL"];
  let nextId=0;
- const s={open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},ignored:{home:[],away:[]},week:"",weekNumber:"",
+ const s={open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},ignored:{home:[],away:[]},
+  sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},
+  autoTotals:{homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""},editedTotals:{},week:"",weekNumber:"",
   homeName:"",awayName:"",homeProjection:"",awayProjection:"",homeGames:"",awayGames:""};
  const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const validWeek=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||""))&&new Date(x+"T12:00:00Z").getUTCDay()===1;
@@ -15,6 +17,8 @@
  function clear(){
   for(const x of s.files)if(x.preview&&typeof URL!=="undefined")URL.revokeObjectURL(x.preview);
   Object.assign(s,{open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},
+    sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},
+    autoTotals:{homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""},editedTotals:{},
     ignored:{home:[],away:[]},week:"",weekNumber:"",homeName:"",awayName:"",
     homeProjection:"",awayProjection:"",homeGames:"",awayGames:""});
  }
@@ -25,23 +29,77 @@
   return {points:p==null?"":p.toFixed(2),games:g?g[1]+"/"+g[2]:"",week:w?w[1]:""};
  };
  function pool(c){return [...c.nbaPlayers,...c.players,...Object.values(c.state.cachePlayers||{})]}
+ function detectionContext(c){
+  const homeIds=(c.state.manualRoster?(c.state.roster||[]):[]),awayIds=(c.state.opponentManual?(c.state.opponentRoster||[]):[]);
+  const saved=(c.state.matchupSnapshots||{})[s.week||c.state.weekStart];
+  return {
+   homeIds:[...new Set([...homeIds,...(saved?.homePlayers||[]).map(p=>p.id)])],
+   awayIds:[...new Set([...awayIds,...(saved?.awayPlayers||[]).map(p=>p.id)])],
+   homeName:s.userEditedNames.home?s.homeName:(saved?.homeName||c.state.name||""),
+   awayName:s.userEditedNames.away?s.awayName:(saved?.awayName||c.state.opponent||"")
+  };
+ }
+ function identifyScreenshots(c){
+  const o=root?.HoopIQMatchupTeams;
+  const matcher=root?.HoopIQRosterOCR?.getMatches;
+  if(!o||!matcher)return {files:[],unresolved:0,conflicts:[],homeName:"",awayName:""};
+  const sources=s.files.map(f=>({
+    ...f,
+    leftText:f.leftText??f.homeText??"",
+    rightText:f.rightText??f.awayText??"",
+    manualSide:f.manualSide||(s.sideOverride!=="auto"?s.sideOverride:"")
+  }));
+  const found=o.identify(sources,matcher,pool(c),detectionContext(c));
+  const weeks=[...new Set(s.files.filter(f=>f.status==="done")
+    .map(f=>extractTotals((f.leftText||"")+"\n"+(f.rightText||"")).week).filter(Boolean))];
+  if(weeks.length>1)found.conflicts.push("Different Yahoo week numbers were found ("+weeks.join(", ")+"). Remove a screenshot from another week.");
+  // OCR header names should only prefill untouched fields; manual corrections always win.
+  for(const side of ["home","away"]){
+   const proposed=String(found[side+"Name"]||"").trim(),was=s.detectedNames[side];
+   const generic=side==="home"?c.state.name:c.state.opponent;
+   if(proposed&&!s.userEditedNames[side]&&(!s[side+"Name"]||s[side+"Name"]===was||s[side+"Name"]===generic))
+    s[side+"Name"]=proposed;
+   if(proposed)s.detectedNames[side]=proposed;
+  }
+  return found;
+ }
  function parse(c){
   const prev={home:new Map(s.home.map(x=>[x.id,x.slot])),away:new Map(s.away.map(x=>[x.id,x.slot]))};
   const matcher=root?.HoopIQRosterOCR?.getMatches;
   if(typeof matcher!=="function")return;
+  s.identity=identifyScreenshots(c);
+  const sourceMap=new Map(s.identity.files.map(f=>[f.id,f]));
+  const totals={homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""};
   for(const side of ["home","away"]){
-   const found=new Map((s.base?.[side]||[]).filter(p=>!s.ignored[side].includes(p.id)).map(p=>[p.id,{...p,slot:prev[side].get(p.id)||p.slot}]));
+   const found=new Map((s.base?.[side]||[]).filter(p=>!s.ignored[side].includes(p.id))
+     .map(p=>[p.id,{...p,slot:prev[side].get(p.id)||p.slot,sourceCount:1}]));
    for(const f of s.files.filter(x=>x.status==="done")){
-    for(const p of matcher(f[side+"Text"]||"",pool(c)).matches||[]){
+    const orientation=sourceMap.get(f.id)?.orientation||"unknown";
+    if(orientation==="unknown")continue;
+    const rawSide=(side==="home"?(orientation==="left"?"left":"right"):(orientation==="left"?"right":"left"));
+    const raw=String(f[rawSide+"Text"]??f[(rawSide==="left"?"home":"away")+"Text"]??"");
+    for(const p of matcher(root?.HoopIQMatchupTeams?.stripHeader(raw)||raw,pool(c)).matches||[]){
      if(s.ignored[side].includes(p.id))continue;
-     if(!found.has(p.id))found.set(p.id,{id:Number(p.id),name:p.name,team:p.team,slot:prev[side].get(p.id)||"UNASSIGNED",confidence:p.confidence||0});
+     const current=found.get(p.id);
+     if(current){current.sourceCount=(current.sourceCount||1)+1;continue}
+     found.set(p.id,{id:Number(p.id),name:p.name,team:p.team,slot:prev[side].get(p.id)||"UNASSIGNED",
+      confidence:p.confidence||0,sourceCount:1});
     }
-    const summary=extractTotals(f[side+"Text"]);
-    if(!s[side+"Projection"]&&summary.points)s[side+"Projection"]=summary.points;
-    if(!s[side+"Games"]&&summary.games)s[side+"Games"]=summary.games;
-    if(!s.weekNumber&&summary.week)s.weekNumber=summary.week;
+    const summary=extractTotals(raw);
+    if(!totals[side+"Projection"]&&summary.points)totals[side+"Projection"]=summary.points;
+    if(!totals[side+"Games"]&&summary.games)totals[side+"Games"]=summary.games;
+    if(!totals.weekNumber&&summary.week)totals.weekNumber=summary.week;
    }
    s[side]=[...found.values()];
+  }
+  for(const key of Object.keys(totals)){
+   const lastAuto=s.autoTotals[key]||"";
+   const isAuto=!s[key]||s[key]===lastAuto;
+   if(!s.editedTotals[key]&&isAuto){
+    if(totals[key])s[key]=totals[key];
+    else if(lastAuto&&s[key]===lastAuto)s[key]="";
+   }
+   s.autoTotals[key]=totals[key];
   }
  }
  function selectSlots(value){
@@ -76,11 +134,37 @@
   if(weeks.length)html+='<div class="weekly-saved-picker"><label>Saved matchup weeks</label><select class="select" id="weeklySavedWeek"><option value="">Choose a saved week…</option>'+
    weeks.map(w=>'<option value="'+w+'">'+w+'</option>').join("")+'</select></div>';
   if(s.open){
+   const recognition=s.identity||{files:[],unresolved:0,conflicts:[],homeName:"",awayName:""};
+   const orientations=new Map(recognition.files.map(item=>[item.id,item]));
+   html+='<section class="weekly-team-recognition"><div><h3>Who is on each side?</h3>'+
+     '<p class="small muted">HoopIQ compares the players with your saved team, checks the Yahoo team headings, and joins overlapping screenshots into one matchup.</p></div>'+
+     '<label class="weekly-side-choice">My team appears on<select class="select" id="weeklySideOverride">'+
+       '<option value="auto" '+(s.sideOverride==="auto"?"selected":"")+'>Auto-detect each screenshot</option>'+
+       '<option value="left" '+(s.sideOverride==="left"?"selected":"")+'>Left side of every screenshot</option>'+
+       '<option value="right" '+(s.sideOverride==="right"?"selected":"")+'>Right side of every screenshot</option>'+
+     '</select></label>'+
+     (s.files.length?'<p class="small muted">Matched '+s.home.length+' unique players for your team and '+s.away.length+' for your opponent. Repeated names from overlapping images are counted once.</p>':"")+
+     (recognition.homeName||recognition.awayName?'<p class="weekly-found-names"><b>Yahoo headers:</b> '+esc(recognition.homeName||"Your name not yet detected")+' <b>vs</b> '+esc(recognition.awayName||"Opponent name not yet detected")+'</p>':"")+
+     (recognition.unresolved?'<div class="note warn">Could not confidently identify the teams in '+recognition.unresolved+' screenshot(s). Choose the correct left/right orientation below before saving.</div>':"")+
+     (recognition.conflicts.length?recognition.conflicts.map(issue=>'<div class="note warn">'+esc(issue)+'</div>').join(""):"")+
+     '</section>';
    html+='<input id="weeklyFiles" type="file" accept="image/*" multiple style="display:none">'+
     '<div class="buttonrow">'+c.button("weeklyUpload","＋ Add screenshots","primary",s.busy?"disabled":"")+
     c.button("weeklyClear","Clear unsaved scan","ghost xs",s.busy?"disabled":"")+'</div>';
-   if(s.files.length)html+='<div class="weekly-thumbnails">'+s.files.map(f=>'<div class="weekly-thumb"><img src="'+esc(f.preview)+'" alt="Yahoo screenshot" loading="lazy"><div><b>'+esc(f.name)+'</b><small>'+esc(f.status)+'</small></div>'+
-      c.button("weeklyRemoveFile","×","ghost xs",'data-file="'+esc(f.id)+'"')+'</div>').join("")+'</div>';
+   if(s.files.length)html+='<div class="weekly-thumbnails">'+s.files.map((f,i)=>{
+     const d=orientations.get(f.id),side=d?.orientation||"unknown";
+     const label=side==="left"?"My team LEFT · Opponent RIGHT":side==="right"?"My team RIGHT · Opponent LEFT":"Needs team confirmation";
+     return '<div class="weekly-thumb"><img src="'+esc(f.preview)+'" alt="Yahoo screenshot '+(i+1)+'" loading="lazy">'+
+      '<div class="weekly-thumb-info"><b>'+esc(f.name)+'</b><small>'+esc(f.status)+'</small>'+
+      '<span class="weekly-thumb-side '+(side==="unknown"?"down":"up")+'">'+esc(label)+'</span>'+
+      (d?'<small>'+esc(d.source)+'</small>':"")+
+      '<label class="weekly-thumb-override">Override for this image<select class="select" data-weekly-image-side="'+esc(f.id)+'" '+(s.busy?"disabled":"")+'>'+
+       '<option value="auto" '+(!f.manualSide?"selected":"")+'>Auto</option>'+
+       '<option value="left" '+(f.manualSide==="left"?"selected":"")+'>My team on left</option>'+
+       '<option value="right" '+(f.manualSide==="right"?"selected":"")+'>My team on right</option>'+
+      '</select></label></div>'+
+      c.button("weeklyRemoveFile","×","ghost xs",'data-file="'+esc(f.id)+'"')+'</div>';
+    }).join("")+'</div>';
    if(s.busy)html+='<div class="note blue" id="weeklyOCRProgress" role="status">'+esc(s.progress||"Reading screenshots…")+'</div>';
    if(s.error)html+='<div class="note warn" role="alert">'+esc(s.error)+'</div>';
    const inputs=[["week","Week begins Monday","date"],["weekNumber","Yahoo week number (optional)","number"],
@@ -96,7 +180,7 @@
    html+='<p class="small muted">Review positions carefully. Screenshots taken mid-scroll may not show every slot; unrecognized spots stay marked “Needs review” rather than being guessed.</p>';
    html+='<details class="weekly-ocr-edit"><summary>Correct OCR text / missed names</summary>'+s.files.filter(f=>f.status==="done").map(f=>
     '<div class="weekly-ocr-file"><b>'+esc(f.name)+'</b>'+["home","away"].map(side=>
-    '<label>'+(side==="home"?"Your side":"Opponent side")+'<textarea data-weekly-raw="'+esc(f.id)+":"+side+'">'+esc(f[side+"Text"])+'</textarea></label>').join("")+
+    '<label>'+(side==="home"?"Screenshot LEFT column":"Screenshot RIGHT column")+'<textarea data-weekly-raw="'+esc(f.id)+":"+side+'">'+esc(f[(side==="home"?"left":"right")+"Text"]||f[side+"Text"]||"")+'</textarea></label>').join("")+
     c.button("weeklyRecheck","Find names again","ghost xs",'data-file="'+esc(f.id)+'"')+'</div>').join("")+'</details>';
    html+='<div class="buttonrow">'+c.button("weeklySave","✓ Save reviewed weekly matchup","primary",s.busy?"disabled":"")+'</div>';
   }
@@ -118,6 +202,11 @@
   capture(c);
   const week=s.week||c.state.weekStart;
   if(!validWeek(week)){s.error="Choose the Monday of the matchup week.";c.render();return}
+  if(s.files.some(f=>f.status==="done")){
+   s.identity=identifyScreenshots(c);
+   if(s.identity.unresolved){s.error="One or more screenshots could not be assigned to your team or your opponent. Choose the side for each image before saving.";c.render();return}
+   if(s.identity.conflicts.length){s.error="The screenshots contain conflicting team names or week numbers. Remove or correct the mismatched image before saving.";c.render();return}
+  }
   if(!s.home.length||!s.away.length){s.error="Scan or enter at least one verified player per team.";c.render();return}
   for(const side of ["home","away"]){
    const keys=s[side].map(p=>p.slot).filter(p=>p.includes(":"));
@@ -147,7 +236,7 @@
   if(typeof createImageBitmap!=="function")return file;
   const bmp=await createImageBitmap(file);
   try{
-   const x=side==="home"?0:Math.floor(bmp.width*.50),w=side==="home"?Math.ceil(bmp.width*.51):bmp.width-x;
+   const x=side==="left"?0:Math.floor(bmp.width*.50),w=side==="left"?Math.ceil(bmp.width*.51):bmp.width-x;
    const y=Math.floor(bmp.height*.11),h=Math.floor(bmp.height*.83);
    const scale=Math.min(2.3,1250/w,3200/h);
    const canvas=document.createElement("canvas");canvas.width=Math.floor(w*scale);canvas.height=Math.floor(h*scale);
@@ -166,7 +255,7 @@
   const inputs=Array.from(list||[]);
   const files=inputs.slice(0,Math.max(0,6-s.files.length)).filter(f=>f.type?.startsWith("image/")&&f.size<=15*1024*1024);
   if(!files.length){s.open=true;s.error="Choose up to six screenshots, 15 MB or smaller each.";c.render();return}
-  const added=files.map(f=>({id:"snap-"+(++nextId),name:f.name||"Screenshot",preview:URL.createObjectURL(f),file:f,homeText:"",awayText:"",status:"queued"}));
+  const added=files.map(f=>({id:"snap-"+(++nextId),name:f.name||"Screenshot",preview:URL.createObjectURL(f),file:f,leftText:"",rightText:"",manualSide:"",status:"queued"}));
   s.files.push(...added);s.open=true;s.busy=true;s.error="";c.render();
   let worker;
   try{
@@ -181,8 +270,8 @@
    await worker.setParameters({tessedit_pageseg_mode:"11"});
    for(let i=0;i<added.length;i++){
     const f=added[i];f.status="scanning";
-    for(const side of ["home","away"]){
-     s.progress="Screenshot "+(i+1)+"/"+added.length+" · "+(side==="home"?"your team":"opponent");c.render();
+    for(const side of ["left","right"]){
+     s.progress="Screenshot "+(i+1)+"/"+added.length+" · reading "+side+" column";c.render();
      const p=await worker.recognize(await crop(f.file,side,true));
      let text=String(p.data?.text||"");
      if((root.HoopIQRosterOCR?.getMatches(text,pool(c))?.matches?.length||0)<2){
@@ -191,7 +280,7 @@
      }
      f[side+"Text"]=text.slice(0,20000);
     }
-    if(c.loadRosterForOCR)await c.loadRosterForOCR(f.homeText+"\n"+f.awayText);
+    if(c.loadRosterForOCR)await c.loadRosterForOCR(f.leftText+"\n"+f.rightText);
     f.status="done";f.file=null;parse(c);c.render();
    }
   }catch(e){
@@ -217,7 +306,7 @@
    if(file){
     for(const side of ["home","away"]){
      const element=document.querySelector('[data-weekly-raw="'+file.id+':'+side+'"]');
-     if(element)file[side+"Text"]=element.value.slice(0,20000);
+     if(element)file[(side==="home"?"left":"right")+"Text"]=element.value.slice(0,20000);
     }
     parse(c);c.render();c.toast("Detected names updated");
    }
@@ -240,6 +329,8 @@
     s.homeProjection=saved.homeProjection==null?"":String(saved.homeProjection);
     s.awayProjection=saved.awayProjection==null?"":String(saved.awayProjection);
     s.homeGames=saved.homeGames||"";s.awayGames=saved.awayGames||"";
+    s.editedTotals={homeProjection:true,awayProjection:true,homeGames:true,awayGames:true,weekNumber:true};
+    s.userEditedNames={home:true,away:true};
     s.home=saved.homePlayers.map(p=>({...p,confidence:100}));
     s.away=saved.awayPlayers.map(p=>({...p,confidence:100}));
     s.base={home:s.home.map(p=>({...p})),away:s.away.map(p=>({...p}))};c.render();
@@ -249,6 +340,28 @@
  }
  function onChange(c,t){
   if(t.id==="weeklyFiles"&&t.files?.length){capture(c);scan(c,t.files);return true}
+  if(t.id==="weeklySideOverride"){
+   capture(c);s.sideOverride=t.value==="left"||t.value==="right"?t.value:"auto";
+   s.error="";parse(c);c.render();return true;
+  }
+  if(t.dataset?.weeklyImageSide){
+   capture(c);
+   const f=s.files.find(x=>x.id===t.dataset.weeklyImageSide);
+   if(f){f.manualSide=t.value==="left"||t.value==="right"?t.value:"";s.error="";parse(c);c.render()}
+   return true;
+  }
+  if(t.id==="weekly-homeName"||t.id==="weekly-awayName"){
+   const side=t.id==="weekly-homeName"?"home":"away";
+   s[side+"Name"]=String(t.value||"").trim();
+   s.userEditedNames[side]=true;
+   return true;
+  }
+  if(["weekly-homeProjection","weekly-awayProjection","weekly-homeGames","weekly-awayGames","weekly-weekNumber"].includes(t.id)){
+   const key=t.id.slice("weekly-".length);
+   s[key]=String(t.value||"").trim();
+   s.editedTotals[key]=true;
+   return true;
+  }
   if(t.id==="weeklySavedWeek"&&validWeek(t.value)){
    c.state.weekStart=t.value;c.persist();c.render();if(c.loadWeek)c.loadWeek();return true;
   }

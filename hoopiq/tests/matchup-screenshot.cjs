@@ -7,7 +7,7 @@ assert(!importer.validWeek("2026-11-17"));
 assert.deepEqual(importer.extractTotals("Week 5\n WOMEN APPRECIATORS\n1489.00\n0/43"),{points:"1489.00",games:"0/43",week:"5"});
 assert.deepEqual(importer.extractTotals("ALEX SARR THE GOAT\n1456.73\n0/45"),{points:"1456.73",games:"0/45",week:""});
 const html=fs.readFileSync("hoopiq/index.html","utf8");
-assert(html.includes('src="/matchup-screenshot.js?v=1"'));
+assert(/src="\/matchup-screenshot\.js\?v=\d+"/.test(html),"versioned importer loaded");
 assert(html.includes("matchupSnapshots:{}"));
 assert(html.includes("loadRosterForOCR,updateNBA,loadWeek,route,$"));
 const page=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean).pop();

@@ -354,3 +354,31 @@ select option{background:#191b34;color:#f4efff}
  .weekly-versus strong{font-size:23px}
  .weekly-versus small{font-size:10px}
 }
+
+/* Weekly matchup: automatic team identity, stitched screenshot review and manual fallback */
+.weekly-team-recognition{
+ margin:14px 0;padding:14px;border:1px solid #6b509d;border-radius:14px;
+ background:linear-gradient(140deg,#272047,#192443)
+}
+.weekly-team-recognition h3{margin:0 0 5px;font-size:15px;color:#f1e5ff}
+.weekly-team-recognition .note{margin:8px 0;line-height:1.5}
+.weekly-side-choice{display:flex;flex-wrap:wrap;align-items:center;gap:9px;color:#e4d9ff;font-size:12px;font-weight:800;margin:12px 0}
+.weekly-side-choice>.select{max-width:280px;width:100%;min-height:38px;font-size:12px}
+.weekly-found-names{font-size:12px;color:#c6c6ec;line-height:1.5;margin:9px 0}
+.weekly-found-names b{color:#f3eaff}
+.weekly-thumbnails{flex-wrap:wrap;overflow-x:visible;gap:10px}
+.weekly-thumb{flex:1 1 265px;max-width:360px;align-items:flex-start;padding:11px}
+.weekly-thumb img{width:50px;height:86px;flex-shrink:0}
+.weekly-thumb-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.weekly-thumb .weekly-thumb-info b{font-size:12px}
+.weekly-thumb .weekly-thumb-info small{font-size:10px}
+.weekly-thumb-side{font-size:11px;font-weight:850;color:#9ef2d7}
+.weekly-thumb-side.down{color:#ffc6ab}
+.weekly-thumb-override{margin:4px 0 0;font-size:10px;color:#b9b1de;display:flex;flex-direction:column;gap:5px}
+.weekly-thumb-override>.select{font-size:11px;min-height:35px;width:100%;max-width:200px}
+@media(max-width:610px){
+ .weekly-side-choice{align-items:stretch;flex-direction:column}
+ .weekly-side-choice>.select{max-width:none}
+ .weekly-thumb{flex:1 1 100%;max-width:none}
+ .weekly-thumb img{width:47px;height:79px}
+}
