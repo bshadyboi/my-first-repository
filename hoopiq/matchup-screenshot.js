@@ -6,10 +6,12 @@
  "use strict";
  const slots=["PG:1","SG:1","G:1","SF:1","PF:1","F:1","C:1","C:2","UTIL:1","UTIL:2"];
  const allSlots=["UNASSIGNED",...slots,"BN","IL"];
+ const layout=()=>root?.HoopIQMatchupLayout;
  let nextId=0;
  const s={open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},ignored:{home:[],away:[]},
   sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},
-  autoTotals:{homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""},editedTotals:{},week:"",weekNumber:"",
+  autoTotals:{homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""},editedTotals:{},
+  manualSlots:{home:{},away:{}},weekEdited:false,autoWeek:"",week:"",weekNumber:"",
   homeName:"",awayName:"",homeProjection:"",awayProjection:"",homeGames:"",awayGames:""};
  const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const validWeek=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||""))&&new Date(x+"T12:00:00Z").getUTCDay()===1;
@@ -19,6 +21,7 @@
   Object.assign(s,{open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},
     sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},
     autoTotals:{homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""},editedTotals:{},
+    manualSlots:{home:{},away:{}},weekEdited:false,autoWeek:"",
     ignored:{home:[],away:[]},week:"",weekNumber:"",homeName:"",awayName:"",
     homeProjection:"",awayProjection:"",homeGames:"",awayGames:""});
  }
@@ -64,33 +67,55 @@
   return found;
  }
  function parse(c){
-  const prev={home:new Map(s.home.map(x=>[x.id,x.slot])),away:new Map(s.away.map(x=>[x.id,x.slot]))};
   const matcher=root?.HoopIQRosterOCR?.getMatches;
   if(typeof matcher!=="function")return;
   s.identity=identifyScreenshots(c);
   const sourceMap=new Map(s.identity.files.map(f=>[f.id,f]));
   const totals={homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""};
+  const ordered=s.files.filter(x=>x.status==="done").slice().sort((a,b)=>{
+   const header=f=>Number(Boolean((f.leftText+" "+f.rightText+" "+f.headerText).match(/week\s*\d|games played|matchup totals/i)));
+   return header(b)-header(a);
+  });
   for(const side of ["home","away"]){
-   const found=new Map((s.base?.[side]||[]).filter(p=>!s.ignored[side].includes(p.id))
-     .map(p=>[p.id,{...p,slot:prev[side].get(p.id)||p.slot,sourceCount:1}]));
-   for(const f of s.files.filter(x=>x.status==="done")){
+   const found=new Map((s.base?.[side]||[]).filter(p=>!s.ignored[side].includes(p.id)).map(p=>[p.id,{...p,sourceCount:1}]));
+   const observations=[];
+   for(const f of ordered){
     const orientation=sourceMap.get(f.id)?.orientation||"unknown";
     if(orientation==="unknown")continue;
     const rawSide=(side==="home"?(orientation==="left"?"left":"right"):(orientation==="left"?"right":"left"));
     const raw=String(f[rawSide+"Text"]??f[(rawSide==="left"?"home":"away")+"Text"]??"");
-    for(const p of matcher(root?.HoopIQMatchupTeams?.stripHeader(raw)||raw,pool(c)).matches||[]){
+    const recognized=matcher(root?.HoopIQMatchupTeams?.stripHeader(raw)||raw,pool(c)).matches||[];
+    const keep=[];
+    for(const p of recognized){
      if(s.ignored[side].includes(p.id))continue;
-     const current=found.get(p.id);
-     if(current){current.sourceCount=(current.sourceCount||1)+1;continue}
-     found.set(p.id,{id:Number(p.id),name:p.name,team:p.team,slot:prev[side].get(p.id)||"UNASSIGNED",
-      confidence:p.confidence||0,sourceCount:1});
+     const existing=found.get(p.id);
+     if(existing){existing.sourceCount=(existing.sourceCount||1)+1;keep.push(existing);continue}
+     const player={id:Number(p.id),name:p.name,team:p.team,slot:"UNASSIGNED",
+      confidence:p.confidence||0,sourceCount:1,slotEvidence:""};
+     found.set(p.id,player);keep.push(player);
     }
+    const positioned=layout()?.labeled(keep,f[rawSide+"Lines"]||[],f.centerLines||[])||[];
+    observations.push({id:f.id,rows:positioned,hasHeader:Boolean(f.headerScore?.left?.projection||f.headerScore?.right?.projection)});
     const summary=extractTotals(raw);
-    if(!totals[side+"Projection"]&&summary.points)totals[side+"Projection"]=summary.points;
-    if(!totals[side+"Games"]&&summary.games)totals[side+"Games"]=summary.games;
-    if(!totals.weekNumber&&summary.week)totals.weekNumber=summary.week;
+    const header=f.headerScore?.[rawSide]||{};
+    const projection=header.projection||summary.points,games=header.games||summary.games;
+    if(!totals[side+"Projection"]&&projection)totals[side+"Projection"]=projection;
+    if(!totals[side+"Games"]&&games)totals[side+"Games"]=games;
+    if(!totals.weekNumber)totals.weekNumber=f.headerScore?.week||summary.week;
    }
-   s[side]=[...found.values()];
+   const positions=layout()?.resolve(observations,s.manualSlots[side]||{})||{order:[],positions:{}};
+   for(const player of found.values()){
+    const recognized=positions.positions[player.id];
+    if(recognized){
+     player.slot=recognized.slot;
+     player.slotEvidence=recognized.source;
+     player.slotConfidence=recognized.confidence;
+    }else{
+     player.slot="UNASSIGNED";player.slotEvidence="";player.slotConfidence="";
+    }
+   }
+   const ranking=new Map(positions.order.map((id,i)=>[id,i]));
+   s[side]=[...found.values()].sort((a,b)=>(ranking.get(a.id)??999)-(ranking.get(b.id)??999));
   }
   for(const key of Object.keys(totals)){
    const lastAuto=s.autoTotals[key]||"";
@@ -101,13 +126,20 @@
    }
    s.autoTotals[key]=totals[key];
   }
- }
- function selectSlots(value){
+  // The Week number is read from Yahoo; its date is only a proposed calendar
+  // mapping and remains editable. Never silently keep an outdated week.
+  const proposed=layout()?.yahooWeekDate(s.weekNumber,new Date())||"";
+  if(proposed&&!s.weekEdited&&(!s.week||s.week===s.autoWeek||s.week===c.state.weekStart)){
+   s.week=proposed;s.autoWeek=proposed;
+  }
+ } function selectSlots(value){
   return allSlots.map(key=>'<option value="'+key+'" '+(key===value?"selected":"")+'>'+
    (key==="UNASSIGNED"?"Needs review":key==="BN"?"Bench":key==="IL"?"Injured List":key.replace(/:1$/,"").replace(/:2$/," (2)"))+'</option>').join("");
  }
  function row(p,side){
-  return '<div class="weekly-import-person"><div><b>'+esc(p.name)+'</b><small>'+esc(p.team)+'</small></div>'+
+  return '<div class="weekly-import-person"><div><b>'+esc(p.name)+'</b><small>'+esc(p.team)+'</small>'+
+   (p.slotEvidence?'<small class="weekly-role-evidence '+(p.slotConfidence==="strong"?"verified":"suggested")+'">'+
+   esc(p.slotConfidence==="strong"?"Yahoo slot detected":"Suggested · verify")+'</small>':"")+'</div>'+
    '<select class="select" data-weekly-slot="'+side+":"+p.id+'" aria-label="Lineup slot for '+esc(p.name)+'">'+selectSlots(p.slot)+'</select>'+
    '<button class="btn ghost xs" data-action="weeklyRemove" data-side="'+side+'" data-id="'+p.id+'">×</button></div>';
  }
@@ -173,11 +205,16 @@
     ["homeGames","My games (played/total)","text"],["awayGames","Opponent games (played/total)","text"]];
    html+='<div class="weekly-fields">'+inputs.map(([key,label,type])=>
     '<label>'+label+'<input id="weekly-'+key+'" class="textinput" type="'+type+'" '+
-    (type==="number"?'step="0.01" min="0" ':"")+'value="'+esc(s[key]||(key==="week"?c.state.weekStart:""))+
+    (type==="number"?'step="0.01" min="0" ':"")+'value="'+esc(s[key]||(key==="week"?suggestedStartWeek(c):""))+
     '" placeholder="'+(key.endsWith("Games")?"0/43":"")+'"></label>').join("")+'</div>';
-   html+='<div class="weekly-review">'+["home","away"].map(side=>'<div><h3>'+ (side==="home"?"Your team":"Opponent")+' · '+s[side].length+' players</h3>'+
-    (s[side].length?s[side].map(p=>row(p,side)).join(""):'<p class="muted small">No player names detected yet. Upload another screenshot or correct OCR text below.</p>')+'</div>').join("")+'</div>';
-   html+='<p class="small muted">Review positions carefully. Screenshots taken mid-scroll may not show every slot; unrecognized spots stay marked “Needs review” rather than being guessed.</p>';
+   html+='<div class="weekly-review">'+["home","away"].map(side=>{
+    const assigned=s[side].filter(p=>p.slot!=="UNASSIGNED").length;
+    const needs=s[side].length-assigned;
+    return '<div><h3>'+ (side==="home"?"Your team":"Opponent")+' · '+s[side].length+' players</h3>'+
+    '<p class="weekly-assignment-count">'+assigned+' positions filled'+(needs?' · '+needs+' need review':' · review suggestions')+'</p>'+
+    (s[side].length?s[side].map(p=>row(p,side)).join(""):'<p class="muted small">No player names detected yet. Upload another screenshot or correct OCR text below.</p>')+'</div>';
+   }).join("")+'</div>';
+   html+='<p class="small muted">Position labels are read from Yahoo’s center column. Suggestions from roster order require your review. Any cropped, missed or ambiguous slots remain “Needs review.”</p>';
    html+='<details class="weekly-ocr-edit"><summary>Correct OCR text / missed names</summary>'+s.files.filter(f=>f.status==="done").map(f=>
     '<div class="weekly-ocr-file"><b>'+esc(f.name)+'</b>'+["home","away"].map(side=>
     '<label>'+(side==="home"?"Screenshot LEFT column":"Screenshot RIGHT column")+'<textarea data-weekly-raw="'+esc(f.id)+":"+side+'">'+esc(f[(side==="home"?"left":"right")+"Text"]||f[side+"Text"]||"")+'</textarea></label>').join("")+
@@ -185,6 +222,15 @@
    html+='<div class="buttonrow">'+c.button("weeklySave","✓ Save reviewed weekly matchup","primary",s.busy?"disabled":"")+'</div>';
   }
   return html+'</div>';
+ }
+ function suggestedStartWeek(c){
+  const saved=String(c.state.weekStart||"");
+  if(!validWeek(saved))return "";
+  const now=new Date(),day=now.getDay(),offset=(day+6)%7;
+  const monday=new Date(now.getFullYear(),now.getMonth(),now.getDate()-offset);
+  const older=new Date(monday.getFullYear(),monday.getMonth(),monday.getDate()-7);
+  const selected=new Date(saved+"T12:00:00");
+  return selected>=older&&selected<=new Date(now.getFullYear(),now.getMonth(),now.getDate()+42)?saved:"";
  }
  function capture(c){
   for(const key of ["week","weekNumber","homeName","awayName","homeProjection","awayProjection","homeGames","awayGames"]){
@@ -200,7 +246,7 @@
  function save(c){
   if(s.busy)return;
   capture(c);
-  const week=s.week||c.state.weekStart;
+  const week=s.week;
   if(!validWeek(week)){s.error="Choose the Monday of the matchup week.";c.render();return}
   if(s.files.some(f=>f.status==="done")){
    s.identity=identifyScreenshots(c);
@@ -232,30 +278,42 @@
   c.state.weekStart=week;c.persist();clear();c.render();c.toast("Yahoo matchup saved for "+week);
   if(c.weekInfo?.start!==week&&c.loadWeek)c.loadWeek();
  }
- async function crop(file,side,contrast){
-  if(typeof createImageBitmap!=="function")return file;
-  const bmp=await createImageBitmap(file);
+ async function crop(file,side,contrast,bitmap=null){
+  if(typeof createImageBitmap!=="function"&&!bitmap)return file;
+  const bmp=bitmap||await createImageBitmap(file);
   try{
-   const x=side==="left"?0:Math.floor(bmp.width*.50),w=side==="left"?Math.ceil(bmp.width*.51):bmp.width-x;
-   const y=Math.floor(bmp.height*.11),h=Math.floor(bmp.height*.83);
-   const scale=Math.min(2.3,1250/w,3200/h);
-   const canvas=document.createElement("canvas");canvas.width=Math.floor(w*scale);canvas.height=Math.floor(h*scale);
+   const W=bmp.width,H=bmp.height;
+   const rect=side==="center"?[.407,.195,.10,.83]:
+    side==="header"?[.035,.93,.12,.41]:
+    side==="header-left"?[0,.51,.12,.41]:
+    side==="header-right"?[.49,.51,.12,.41]:
+    side==="left"?[0,.51,.11,.83]:[.49,.51,.11,.83];
+   const x=Math.floor(W*rect[0]),w=Math.ceil(W*rect[1]);
+   const y=Math.floor(H*rect[2]),h=Math.ceil(H*rect[3]);
+   const scale=Math.min(side==="header"?2.7:2.6,1450/w,3500/h);
+   const canvas=document.createElement("canvas");
+   canvas.width=Math.max(1,Math.floor(w*scale));canvas.height=Math.max(1,Math.floor(h*scale));
    const ctx=canvas.getContext("2d",{willReadFrequently:true});
    ctx.drawImage(bmp,x,y,w,h,0,0,canvas.width,canvas.height);
    if(contrast){
     const image=ctx.getImageData(0,0,canvas.width,canvas.height),v=image.data;
-    for(let i=0;i<v.length;i+=4){const lum=v[i]*.299+v[i+1]*.587+v[i+2]*.114;const ink=lum>123?20:255;v[i]=v[i+1]=v[i+2]=ink}
+    for(let i=0;i<v.length;i+=4){
+     const lum=v[i]*.299+v[i+1]*.587+v[i+2]*.114;
+     const ink=lum>122?22:250;
+     v[i]=v[i+1]=v[i+2]=ink;
+    }
     ctx.putImageData(image,0,0);
    }
    return canvas;
-  }finally{bmp.close?.()}
+  }finally{if(!bitmap)bmp.close?.()}
  }
  async function scan(c,list){
   if(s.busy)return;
   const inputs=Array.from(list||[]);
   const files=inputs.slice(0,Math.max(0,6-s.files.length)).filter(f=>f.type?.startsWith("image/")&&f.size<=15*1024*1024);
   if(!files.length){s.open=true;s.error="Choose up to six screenshots, 15 MB or smaller each.";c.render();return}
-  const added=files.map(f=>({id:"snap-"+(++nextId),name:f.name||"Screenshot",preview:URL.createObjectURL(f),file:f,leftText:"",rightText:"",manualSide:"",status:"queued"}));
+  const added=files.map(f=>({id:"snap-"+(++nextId),name:f.name||"Screenshot",preview:URL.createObjectURL(f),file:f,
+   leftText:"",rightText:"",leftLines:[],rightLines:[],centerLines:[],headerText:"",headerScore:null,manualSide:"",status:"queued"}));
   s.files.push(...added);s.open=true;s.busy=true;s.error="";c.render();
   let worker;
   try{
@@ -268,23 +326,74 @@
     const el=c.$("weeklyOCRProgress");if(el&&m.progress!=null)el.textContent=s.progress+" · "+Math.round(m.progress*100)+"%";
    }});
    await worker.setParameters({tessedit_pageseg_mode:"11"});
+   const read=async image=>{
+    const result=await worker.recognize(image,{}, {tsv:true});
+    return {text:String(result.data?.text||""),
+     rows:layout()?.lines(result.data,image.width||1000,image.height||2000)||[]};
+   };
    for(let i=0;i<added.length;i++){
     const f=added[i];f.status="scanning";
-    for(const side of ["left","right"]){
-     s.progress="Screenshot "+(i+1)+"/"+added.length+" · reading "+side+" column";c.render();
-     const p=await worker.recognize(await crop(f.file,side,true));
-     let text=String(p.data?.text||"");
-     if((root.HoopIQRosterOCR?.getMatches(text,pool(c))?.matches?.length||0)<2){
-      const retry=await worker.recognize(await crop(f.file,side,false));
-      text+="\n"+String(retry.data?.text||"");
+    const image=typeof createImageBitmap==="function"?await createImageBitmap(f.file):null;
+    try{
+     for(const side of ["left","right"]){
+      s.progress="Screenshot "+(i+1)+"/"+added.length+" · scanning "+side+" team";c.render();
+      const enhanced=await crop(f.file,side,true,image);
+      let result=await read(enhanced);
+      if((root.HoopIQRosterOCR?.getMatches(result.text,pool(c))?.matches?.length||0)<3||!result.rows.length){
+       const plain=await read(await crop(f.file,side,false,image));
+       if(plain.rows.length>result.rows.length)result.rows=plain.rows;
+       result.text+="\n"+plain.text;
+      }
+      f[side+"Text"]=result.text.slice(0,20000);
+      f[side+"Lines"]=result.rows;
      }
-     f[side+"Text"]=text.slice(0,20000);
-    }
-    if(c.loadRosterForOCR)await c.loadRosterForOCR(f.leftText+"\n"+f.rightText);
-    f.status="done";f.file=null;parse(c);c.render();
+     s.progress="Screenshot "+(i+1)+"/"+added.length+" · reading Yahoo position labels";c.render();
+     const central=await read(await crop(f.file,"center",false,image));
+     f.centerLines=central.rows;
+     if((layout()?.roleRows(f.centerLines).length||0)<4){
+      const alternative=await read(await crop(f.file,"center",true,image));
+      const roleA=layout()?.roleRows(f.centerLines).length||0;
+      const roleB=layout()?.roleRows(alternative.rows).length||0;
+      if(roleB>roleA)f.centerLines=alternative.rows;
+     }
+     s.progress="Screenshot "+(i+1)+"/"+added.length+" · reading projected matchup totals";c.render();
+     const header=await read(await crop(f.file,"header",false,image));
+     f.headerText=header.text;let scores=layout()?.scoreboard(header.rows)||{left:{},right:{},week:""};
+     if(!scores.left.projection||!scores.right.projection){
+      const contrast=await read(await crop(f.file,"header",true,image));
+      const alternate=layout()?.scoreboard(contrast.rows)||{left:{},right:{},week:""};
+      scores={left:{projection:scores.left.projection||alternate.left.projection,
+       games:scores.left.games||alternate.left.games},
+       right:{projection:scores.right.projection||alternate.right.projection,
+        games:scores.right.games||alternate.right.games},
+       week:scores.week||alternate.week};
+      f.headerText+="\n"+contrast.text;
+     }
+     // Re-scan whichever scoreboard half still lacks a projection. A full
+     // width OCR pass sometimes merges both teams into one unreadable line.
+     for(const side of ["left","right"]){
+      if(scores[side].projection&&scores[side].games)continue;
+      const half=await read(await crop(f.file,"header-"+side,true,image));
+      const halfResult=extractTotals(half.text);
+      if(!scores[side].projection&&halfResult.points)scores[side].projection=halfResult.points;
+      if(!scores[side].games&&halfResult.games)scores[side].games=halfResult.games;
+      if(!scores.week&&halfResult.week)scores.week=halfResult.week;
+      f[side+"Text"]=half.text+"\n"+f[side+"Text"];
+      f.headerText+="\n"+half.text;
+     }
+     f.headerScore=scores;
+     // Improve team name/header detection if it was missed in the taller side crops.
+     const headerLines=header.rows;
+     for(const side of ["left","right"]){
+      const lines=headerLines.filter(line=>(side==="left"?line.x<.5:line.x>=.5)).map(line=>line.text);
+      if(lines.length)f[side+"Text"]+="\n"+lines.join("\n");
+     }
+     if(c.loadRosterForOCR)await c.loadRosterForOCR(f.leftText+"\n"+f.rightText);
+     f.status="done";f.file=null;parse(c);c.render();
+    }finally{image?.close?.()}
    }
   }catch(e){
-   s.error="Unable to finish scanning: "+String(e.message||e)+". Correct OCR text or try clearer screenshots.";
+   s.error="Unable to finish scanning: "+String(e.message||e)+". The reviewed players stay unchanged. Try clearer screenshots.";
    for(const f of added)if(f.status!=="done")f.status="error";
   }finally{
    if(worker)try{await worker.terminate()}catch(e){}
@@ -365,9 +474,18 @@
   if(t.id==="weeklySavedWeek"&&validWeek(t.value)){
    c.state.weekStart=t.value;c.persist();c.render();if(c.loadWeek)c.loadWeek();return true;
   }
+  if(t.id==="weekly-week"){
+   s.week=String(t.value||"");s.weekEdited=true;return true;
+  }
+  if(t.id==="weekly-weekNumber"){
+   s.weekNumber=String(t.value||"").trim();s.editedTotals.weekNumber=true;
+   const proposed=layout()?.yahooWeekDate(s.weekNumber,new Date())||"";
+   if(proposed&&!s.weekEdited){s.week=proposed;s.autoWeek=proposed;c.render()}
+   return true;
+  }
   if(t.dataset?.weeklySlot){
    const [side,id]=t.dataset.weeklySlot.split(":");
-   const row=s[side]?.find(x=>x.id===Number(id));if(row)row.slot=t.value;return true;
+   const row=s[side]?.find(x=>x.id===Number(id));if(row){row.slot=t.value;row.slotEvidence="Manually reviewed";row.slotConfidence="manual";s.manualSlots[side][Number(id)]=t.value;}return true;
   }
   return false;
  }
