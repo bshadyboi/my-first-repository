@@ -87,7 +87,7 @@ assert(open.includes("My team LEFT · Opponent RIGHT"));
 assert(open.includes("Matched 4 unique players"),"merged count visible");
 const html=fs.readFileSync("hoopiq/index.html","utf8");
 assert(html.includes("matchup-team-detection.js?v=1"));
-assert(html.includes("matchup-screenshot.js?v=2"));
+assert(/matchup-screenshot\.js\?v=\d+/.test(html),"importer version can be cache-busted");
 const mainScript=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(x=>x.trim()).pop();
 new vm.Script(mainScript,{filename:"index.html"});
 new vm.Script(fs.readFileSync("hoopiq/matchup-screenshot.js","utf8"),{filename:"matchup-screenshot.js"});
