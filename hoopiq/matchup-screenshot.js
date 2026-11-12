@@ -7,7 +7,8 @@
  const slots=["PG:1","SG:1","G:1","SF:1","PF:1","F:1","C:1","C:2","UTIL:1","UTIL:2"];
  const allSlots=["UNASSIGNED",...slots,"BN","IL"];
  let nextId=0;
- const s={open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},ignored:{home:[],away:[]},week:"",weekNumber:"",
+ const s={open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},ignored:{home:[],away:[]},
+  sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},week:"",weekNumber:"",
   homeName:"",awayName:"",homeProjection:"",awayProjection:"",homeGames:"",awayGames:""};
  const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const validWeek=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||""))&&new Date(x+"T12:00:00Z").getUTCDay()===1;
@@ -15,6 +16,7 @@
  function clear(){
   for(const x of s.files)if(x.preview&&typeof URL!=="undefined")URL.revokeObjectURL(x.preview);
   Object.assign(s,{open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},
+    sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},
     ignored:{home:[],away:[]},week:"",weekNumber:"",homeName:"",awayName:"",
     homeProjection:"",awayProjection:"",homeGames:"",awayGames:""});
  }
@@ -25,18 +27,62 @@
   return {points:p==null?"":p.toFixed(2),games:g?g[1]+"/"+g[2]:"",week:w?w[1]:""};
  };
  function pool(c){return [...c.nbaPlayers,...c.players,...Object.values(c.state.cachePlayers||{})]}
+ function detectionContext(c){
+  const homeIds=(c.state.manualRoster?(c.state.roster||[]):[]),awayIds=(c.state.opponentManual?(c.state.opponentRoster||[]):[]);
+  const saved=(c.state.matchupSnapshots||{})[s.week||c.state.weekStart];
+  return {
+   homeIds:[...new Set([...homeIds,...(saved?.homePlayers||[]).map(p=>p.id)])],
+   awayIds:[...new Set([...awayIds,...(saved?.awayPlayers||[]).map(p=>p.id)])],
+   homeName:s.userEditedNames.home?s.homeName:(saved?.homeName||c.state.name||""),
+   awayName:s.userEditedNames.away?s.awayName:(saved?.awayName||c.state.opponent||"")
+  };
+ }
+ function identifyScreenshots(c){
+  const o=root?.HoopIQMatchupTeams;
+  const matcher=root?.HoopIQRosterOCR?.getMatches;
+  if(!o||!matcher)return {files:[],unresolved:0,conflicts:[],homeName:"",awayName:""};
+  const sources=s.files.map(f=>({
+    ...f,
+    leftText:f.leftText??f.homeText??"",
+    rightText:f.rightText??f.awayText??"",
+    manualSide:f.manualSide||(s.sideOverride!=="auto"?s.sideOverride:"")
+  }));
+  const found=o.identify(sources,matcher,pool(c),detectionContext(c));
+  const weeks=[...new Set(s.files.filter(f=>f.status==="done")
+    .map(f=>extractTotals((f.leftText||"")+"\n"+(f.rightText||"")).week).filter(Boolean))];
+  if(weeks.length>1)found.conflicts.push("Different Yahoo week numbers were found ("+weeks.join(", ")+"). Remove a screenshot from another week.");
+  // OCR header names should only prefill untouched fields; manual corrections always win.
+  for(const side of ["home","away"]){
+   const proposed=String(found[side+"Name"]||"").trim(),was=s.detectedNames[side];
+   const generic=side==="home"?c.state.name:c.state.opponent;
+   if(proposed&&!s.userEditedNames[side]&&(!s[side+"Name"]||s[side+"Name"]===was||s[side+"Name"]===generic))
+    s[side+"Name"]=proposed;
+   if(proposed)s.detectedNames[side]=proposed;
+  }
+  return found;
+ }
  function parse(c){
   const prev={home:new Map(s.home.map(x=>[x.id,x.slot])),away:new Map(s.away.map(x=>[x.id,x.slot]))};
   const matcher=root?.HoopIQRosterOCR?.getMatches;
   if(typeof matcher!=="function")return;
+  s.identity=identifyScreenshots(c);
+  const sourceMap=new Map(s.identity.files.map(f=>[f.id,f]));
   for(const side of ["home","away"]){
-   const found=new Map((s.base?.[side]||[]).filter(p=>!s.ignored[side].includes(p.id)).map(p=>[p.id,{...p,slot:prev[side].get(p.id)||p.slot}]));
+   const found=new Map((s.base?.[side]||[]).filter(p=>!s.ignored[side].includes(p.id))
+     .map(p=>[p.id,{...p,slot:prev[side].get(p.id)||p.slot,sourceCount:1}]));
    for(const f of s.files.filter(x=>x.status==="done")){
-    for(const p of matcher(f[side+"Text"]||"",pool(c)).matches||[]){
+    const orientation=sourceMap.get(f.id)?.orientation||"unknown";
+    if(orientation==="unknown")continue;
+    const rawSide=(side==="home"?(orientation==="left"?"left":"right"):(orientation==="left"?"right":"left"));
+    const raw=String(f[rawSide+"Text"]??f[(rawSide==="left"?"home":"away")+"Text"]??"");
+    for(const p of matcher(raw,pool(c)).matches||[]){
      if(s.ignored[side].includes(p.id))continue;
-     if(!found.has(p.id))found.set(p.id,{id:Number(p.id),name:p.name,team:p.team,slot:prev[side].get(p.id)||"UNASSIGNED",confidence:p.confidence||0});
+     const current=found.get(p.id);
+     if(current){current.sourceCount=(current.sourceCount||1)+1;continue}
+     found.set(p.id,{id:Number(p.id),name:p.name,team:p.team,slot:prev[side].get(p.id)||"UNASSIGNED",
+      confidence:p.confidence||0,sourceCount:1});
     }
-    const summary=extractTotals(f[side+"Text"]);
+    const summary=extractTotals(raw);
     if(!s[side+"Projection"]&&summary.points)s[side+"Projection"]=summary.points;
     if(!s[side+"Games"]&&summary.games)s[side+"Games"]=summary.games;
     if(!s.weekNumber&&summary.week)s.weekNumber=summary.week;
