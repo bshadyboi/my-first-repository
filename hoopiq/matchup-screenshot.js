@@ -122,11 +122,37 @@
   if(weeks.length)html+='<div class="weekly-saved-picker"><label>Saved matchup weeks</label><select class="select" id="weeklySavedWeek"><option value="">Choose a saved week…</option>'+
    weeks.map(w=>'<option value="'+w+'">'+w+'</option>').join("")+'</select></div>';
   if(s.open){
+   const recognition=s.identity||{files:[],unresolved:0,conflicts:[],homeName:"",awayName:""};
+   const orientations=new Map(recognition.files.map(item=>[item.id,item]));
+   html+='<section class="weekly-team-recognition"><div><h3>Who is on each side?</h3>'+
+     '<p class="small muted">HoopIQ compares the players with your saved team, checks the Yahoo team headings, and joins overlapping screenshots into one matchup.</p></div>'+
+     '<label class="weekly-side-choice">My team appears on<select class="select" id="weeklySideOverride">'+
+       '<option value="auto" '+(s.sideOverride==="auto"?"selected":"")+'>Auto-detect each screenshot</option>'+
+       '<option value="left" '+(s.sideOverride==="left"?"selected":"")+'>Left side of every screenshot</option>'+
+       '<option value="right" '+(s.sideOverride==="right"?"selected":"")+'>Right side of every screenshot</option>'+
+     '</select></label>'+
+     (s.files.length?'<p class="small muted">Matched '+s.home.length+' unique players for your team and '+s.away.length+' for your opponent. Repeated names from overlapping images are counted once.</p>':"")+
+     (recognition.homeName||recognition.awayName?'<p class="weekly-found-names"><b>Yahoo headers:</b> '+esc(recognition.homeName||"Your name not yet detected")+' <b>vs</b> '+esc(recognition.awayName||"Opponent name not yet detected")+'</p>':"")+
+     (recognition.unresolved?'<div class="note warn">Could not confidently identify the teams in '+recognition.unresolved+' screenshot(s). Choose the correct left/right orientation below before saving.</div>':"")+
+     (recognition.conflicts.length?recognition.conflicts.map(issue=>'<div class="note warn">'+esc(issue)+'</div>').join(""):"")+
+     '</section>';
    html+='<input id="weeklyFiles" type="file" accept="image/*" multiple style="display:none">'+
     '<div class="buttonrow">'+c.button("weeklyUpload","＋ Add screenshots","primary",s.busy?"disabled":"")+
     c.button("weeklyClear","Clear unsaved scan","ghost xs",s.busy?"disabled":"")+'</div>';
-   if(s.files.length)html+='<div class="weekly-thumbnails">'+s.files.map(f=>'<div class="weekly-thumb"><img src="'+esc(f.preview)+'" alt="Yahoo screenshot" loading="lazy"><div><b>'+esc(f.name)+'</b><small>'+esc(f.status)+'</small></div>'+
-      c.button("weeklyRemoveFile","×","ghost xs",'data-file="'+esc(f.id)+'"')+'</div>').join("")+'</div>';
+   if(s.files.length)html+='<div class="weekly-thumbnails">'+s.files.map((f,i)=>{
+     const d=orientations.get(f.id),side=d?.orientation||"unknown";
+     const label=side==="left"?"My team LEFT · Opponent RIGHT":side==="right"?"My team RIGHT · Opponent LEFT":"Needs team confirmation";
+     return '<div class="weekly-thumb"><img src="'+esc(f.preview)+'" alt="Yahoo screenshot '+(i+1)+'" loading="lazy">'+
+      '<div class="weekly-thumb-info"><b>'+esc(f.name)+'</b><small>'+esc(f.status)+'</small>'+
+      '<span class="weekly-thumb-side '+(side==="unknown"?"down":"up")+'">'+esc(label)+'</span>'+
+      (d?'<small>'+esc(d.source)+'</small>':"")+
+      '<label class="weekly-thumb-override">Override for this image<select class="select" data-weekly-image-side="'+esc(f.id)+'" '+(s.busy?"disabled":"")+'>'+
+       '<option value="auto" '+(!f.manualSide?"selected":"")+'>Auto</option>'+
+       '<option value="left" '+(f.manualSide==="left"?"selected":"")+'>My team on left</option>'+
+       '<option value="right" '+(f.manualSide==="right"?"selected":"")+'>My team on right</option>'+
+      '</select></label></div>'+
+      c.button("weeklyRemoveFile","×","ghost xs",'data-file="'+esc(f.id)+'"')+'</div>';
+    }).join("")+'</div>';
    if(s.busy)html+='<div class="note blue" id="weeklyOCRProgress" role="status">'+esc(s.progress||"Reading screenshots…")+'</div>';
    if(s.error)html+='<div class="note warn" role="alert">'+esc(s.error)+'</div>';
    const inputs=[["week","Week begins Monday","date"],["weekNumber","Yahoo week number (optional)","number"],
@@ -142,7 +168,7 @@
    html+='<p class="small muted">Review positions carefully. Screenshots taken mid-scroll may not show every slot; unrecognized spots stay marked “Needs review” rather than being guessed.</p>';
    html+='<details class="weekly-ocr-edit"><summary>Correct OCR text / missed names</summary>'+s.files.filter(f=>f.status==="done").map(f=>
     '<div class="weekly-ocr-file"><b>'+esc(f.name)+'</b>'+["home","away"].map(side=>
-    '<label>'+(side==="home"?"Your side":"Opponent side")+'<textarea data-weekly-raw="'+esc(f.id)+":"+side+'">'+esc(f[side+"Text"])+'</textarea></label>').join("")+
+    '<label>'+(side==="home"?"Screenshot LEFT column":"Screenshot RIGHT column")+'<textarea data-weekly-raw="'+esc(f.id)+":"+side+'">'+esc(f[(side==="home"?"left":"right")+"Text"]||f[side+"Text"]||"")+'</textarea></label>').join("")+
     c.button("weeklyRecheck","Find names again","ghost xs",'data-file="'+esc(f.id)+'"')+'</div>').join("")+'</details>';
    html+='<div class="buttonrow">'+c.button("weeklySave","✓ Save reviewed weekly matchup","primary",s.busy?"disabled":"")+'</div>';
   }
