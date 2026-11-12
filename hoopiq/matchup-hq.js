@@ -53,7 +53,7 @@ function renderMatchup(c){
  const {state,esc,button,card,sampleRoster,scheduleReady,scheduleNotice,weekControls,f,weekInfo,addDropSuggestions,suggestionCards}=c;
  const own=state.manualRoster?sampleRoster().filter(p=>(state.rosterPositions||{})[p.id]!=="IL"):[],opp=state.opponentManual?opponentPlayers(c).filter(p=>(state.opponentPositions||{})[p.id]!=="IL"):[];
  const haveOwn=own.length>0,haveOpp=opp.length>0;
- const header='<div class="pagehead"><div><div class="eyebrow">YOUR WEEKLY GAME PLAN</div><h1>⚔ Matchup HQ</h1><p>Both teams, weekly points, lineup conflicts, and the waiver move that fits your schedule.</p></div><div class="buttonrow">'+weekControls()+'</div></div>';
+ const header='<div class="pagehead"><div><div class="eyebrow">YOUR WEEKLY GAME PLAN</div><h1>⚔ Matchup HQ</h1><p>Both teams, weekly points, lineup conflicts, and the waiver move that fits your schedule.</p></div><div class="buttonrow">'+weekControls()+'</div></div>'+(window.HoopIQWeeklyImport?.render(c)||"");
  if(!haveOwn||!haveOpp)return header+'<div class="hq-steps"><span class="'+(haveOwn?"done":"")+'">1 · My Team</span><span class="'+(haveOpp?"done":"")+'">2 · Opponent</span><span>3 · Matchup HQ</span></div>'+
   card("Set up your matchup",'<div class="note blue">Import both rosters first. We never pretend example players are your real fantasy team.</div><div class="grid two" style="margin-top:15px">'+
   '<div class="hq-setup"><b>♙ Your team</b><p>'+(haveOwn?own.length+' confirmed players':'Your real roster is missing')+'</p>'+button("league",haveOwn?"Review my roster":"📸 Import my roster",haveOwn?"ghost":"primary")+'</div>'+
@@ -95,6 +95,7 @@ function renderMatchup(c){
  return html;
 }
 function onClick(c,a,el){
+ if(window.HoopIQWeeklyImport?.onClick(c,a,el))return true;
  const {state,imageReview:r,render,persist,toast,button,P,nbaPlayers,players,scanYahooPhoto,suggestPhotoNames,clearImageReview,$}=c;
  if(a==="opponentImportToggle"){state.opponentImportOpen=!state.opponentImportOpen;persist();render();return true}
  if(a==="opponentManualToggle"){state.opponentManualAddOpen=!state.opponentManualAddOpen;persist();render();return true}
@@ -127,6 +128,7 @@ function onClick(c,a,el){
  return false;
 }
 function onChange(c,t){
+ if(window.HoopIQWeeklyImport?.onChange(c,t))return true;
  const {state,imageReview:r,scanYahooPhotos,nbaPlayers,players,persist,render,toast}=c;
  if(t.dataset.reviewopponent){const id=Number(t.dataset.reviewopponent);if(t.checked)r.selected.add(id);else r.selected.delete(id);return true}
  if(t.id==="opponentImportMode"){r.replaceRoster=t.value==="replace";return true}
