@@ -112,6 +112,7 @@
    }
   }
   const order=mergeOrder(sequences),known=new Map(),indexOfStart=new Map();
+  const located=new Set((observations||[]).flatMap(o=>(o.rows||[]).filter(p=>p.y!=null).map(p=>Number(p.id))));
   START.forEach((label,i)=>{if(!indexOfStart.has(label))indexOfStart.set(label,[]);indexOfStart.get(label).push(i)});
   // Existing explicitly reviewed positions are retained on rescans.
   const used=new Set();
@@ -173,7 +174,7 @@
   // if every OCR-verified starter slot agrees. Mark all fallbacks as
   // "suggested", not verified, so users see exactly what to review.
   const top=(observations||[]).some(o=>o.hasHeader&&(o.rows||[]).length>=5);
-  if(top&&order.length>=10){
+  if(top&&order.length>=10&&order.slice(0,10).every(id=>located.has(id))){
    const expected=i=>{
     const label=START[i];
     return label+":"+START.slice(0,i+1).filter(x=>x===label).length;
