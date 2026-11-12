@@ -190,6 +190,11 @@
   capture(c);
   const week=s.week||c.state.weekStart;
   if(!validWeek(week)){s.error="Choose the Monday of the matchup week.";c.render();return}
+  if(s.files.some(f=>f.status==="done")){
+   s.identity=identifyScreenshots(c);
+   if(s.identity.unresolved){s.error="One or more screenshots could not be assigned to your team or your opponent. Choose the side for each image before saving.";c.render();return}
+   if(s.identity.conflicts.length){s.error="The screenshots contain conflicting team names or week numbers. Remove or correct the mismatched image before saving.";c.render();return}
+  }
   if(!s.home.length||!s.away.length){s.error="Scan or enter at least one verified player per team.";c.render();return}
   for(const side of ["home","away"]){
    const keys=s[side].map(p=>p.slot).filter(p=>p.includes(":"));
@@ -219,7 +224,7 @@
   if(typeof createImageBitmap!=="function")return file;
   const bmp=await createImageBitmap(file);
   try{
-   const x=side==="home"?0:Math.floor(bmp.width*.50),w=side==="home"?Math.ceil(bmp.width*.51):bmp.width-x;
+   const x=side==="left"?0:Math.floor(bmp.width*.50),w=side==="left"?Math.ceil(bmp.width*.51):bmp.width-x;
    const y=Math.floor(bmp.height*.11),h=Math.floor(bmp.height*.83);
    const scale=Math.min(2.3,1250/w,3200/h);
    const canvas=document.createElement("canvas");canvas.width=Math.floor(w*scale);canvas.height=Math.floor(h*scale);
@@ -238,7 +243,7 @@
   const inputs=Array.from(list||[]);
   const files=inputs.slice(0,Math.max(0,6-s.files.length)).filter(f=>f.type?.startsWith("image/")&&f.size<=15*1024*1024);
   if(!files.length){s.open=true;s.error="Choose up to six screenshots, 15 MB or smaller each.";c.render();return}
-  const added=files.map(f=>({id:"snap-"+(++nextId),name:f.name||"Screenshot",preview:URL.createObjectURL(f),file:f,homeText:"",awayText:"",status:"queued"}));
+  const added=files.map(f=>({id:"snap-"+(++nextId),name:f.name||"Screenshot",preview:URL.createObjectURL(f),file:f,leftText:"",rightText:"",manualSide:"",status:"queued"}));
   s.files.push(...added);s.open=true;s.busy=true;s.error="";c.render();
   let worker;
   try{
@@ -253,8 +258,8 @@
    await worker.setParameters({tessedit_pageseg_mode:"11"});
    for(let i=0;i<added.length;i++){
     const f=added[i];f.status="scanning";
-    for(const side of ["home","away"]){
-     s.progress="Screenshot "+(i+1)+"/"+added.length+" · "+(side==="home"?"your team":"opponent");c.render();
+    for(const side of ["left","right"]){
+     s.progress="Screenshot "+(i+1)+"/"+added.length+" · reading "+side+" column";c.render();
      const p=await worker.recognize(await crop(f.file,side,true));
      let text=String(p.data?.text||"");
      if((root.HoopIQRosterOCR?.getMatches(text,pool(c))?.matches?.length||0)<2){
@@ -263,7 +268,7 @@
      }
      f[side+"Text"]=text.slice(0,20000);
     }
-    if(c.loadRosterForOCR)await c.loadRosterForOCR(f.homeText+"\n"+f.awayText);
+    if(c.loadRosterForOCR)await c.loadRosterForOCR(f.leftText+"\n"+f.rightText);
     f.status="done";f.file=null;parse(c);c.render();
    }
   }catch(e){
@@ -289,7 +294,7 @@
    if(file){
     for(const side of ["home","away"]){
      const element=document.querySelector('[data-weekly-raw="'+file.id+':'+side+'"]');
-     if(element)file[side+"Text"]=element.value.slice(0,20000);
+     if(element)file[(side==="home"?"left":"right")+"Text"]=element.value.slice(0,20000);
     }
     parse(c);c.render();c.toast("Detected names updated");
    }
@@ -321,6 +326,22 @@
  }
  function onChange(c,t){
   if(t.id==="weeklyFiles"&&t.files?.length){capture(c);scan(c,t.files);return true}
+  if(t.id==="weeklySideOverride"){
+   capture(c);s.sideOverride=t.value==="left"||t.value==="right"?t.value:"auto";
+   s.error="";parse(c);c.render();return true;
+  }
+  if(t.dataset?.weeklyImageSide){
+   capture(c);
+   const f=s.files.find(x=>x.id===t.dataset.weeklyImageSide);
+   if(f){f.manualSide=t.value==="left"||t.value==="right"?t.value:"";s.error="";parse(c);c.render()}
+   return true;
+  }
+  if(t.id==="weekly-homeName"||t.id==="weekly-awayName"){
+   const side=t.id==="weekly-homeName"?"home":"away";
+   s[side+"Name"]=String(t.value||"").trim();
+   s.userEditedNames[side]=true;
+   return true;
+  }
   if(t.id==="weeklySavedWeek"&&validWeek(t.value)){
    c.state.weekStart=t.value;c.persist();c.render();if(c.loadWeek)c.loadWeek();return true;
   }
