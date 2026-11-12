@@ -6,10 +6,12 @@
  "use strict";
  const slots=["PG:1","SG:1","G:1","SF:1","PF:1","F:1","C:1","C:2","UTIL:1","UTIL:2"];
  const allSlots=["UNASSIGNED",...slots,"BN","IL"];
+ const layout=()=>root?.HoopIQMatchupLayout;
  let nextId=0;
  const s={open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},ignored:{home:[],away:[]},
   sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},
-  autoTotals:{homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""},editedTotals:{},week:"",weekNumber:"",
+  autoTotals:{homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""},editedTotals:{},
+  manualSlots:{home:{},away:{}},weekEdited:false,autoWeek:"",week:"",weekNumber:"",
   homeName:"",awayName:"",homeProjection:"",awayProjection:"",homeGames:"",awayGames:""};
  const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const validWeek=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||""))&&new Date(x+"T12:00:00Z").getUTCDay()===1;
@@ -19,6 +21,7 @@
   Object.assign(s,{open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},
     sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},
     autoTotals:{homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""},editedTotals:{},
+    manualSlots:{home:{},away:{}},weekEdited:false,autoWeek:"",
     ignored:{home:[],away:[]},week:"",weekNumber:"",homeName:"",awayName:"",
     homeProjection:"",awayProjection:"",homeGames:"",awayGames:""});
  }
@@ -64,33 +67,55 @@
   return found;
  }
  function parse(c){
-  const prev={home:new Map(s.home.map(x=>[x.id,x.slot])),away:new Map(s.away.map(x=>[x.id,x.slot]))};
   const matcher=root?.HoopIQRosterOCR?.getMatches;
   if(typeof matcher!=="function")return;
   s.identity=identifyScreenshots(c);
   const sourceMap=new Map(s.identity.files.map(f=>[f.id,f]));
   const totals={homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""};
+  const ordered=s.files.filter(x=>x.status==="done").slice().sort((a,b)=>{
+   const header=f=>Number(Boolean((f.leftText+" "+f.rightText+" "+f.headerText).match(/week\s*\d|games played|matchup totals/i)));
+   return header(b)-header(a);
+  });
   for(const side of ["home","away"]){
-   const found=new Map((s.base?.[side]||[]).filter(p=>!s.ignored[side].includes(p.id))
-     .map(p=>[p.id,{...p,slot:prev[side].get(p.id)||p.slot,sourceCount:1}]));
-   for(const f of s.files.filter(x=>x.status==="done")){
+   const found=new Map((s.base?.[side]||[]).filter(p=>!s.ignored[side].includes(p.id)).map(p=>[p.id,{...p,sourceCount:1}]));
+   const observations=[];
+   for(const f of ordered){
     const orientation=sourceMap.get(f.id)?.orientation||"unknown";
     if(orientation==="unknown")continue;
     const rawSide=(side==="home"?(orientation==="left"?"left":"right"):(orientation==="left"?"right":"left"));
     const raw=String(f[rawSide+"Text"]??f[(rawSide==="left"?"home":"away")+"Text"]??"");
-    for(const p of matcher(root?.HoopIQMatchupTeams?.stripHeader(raw)||raw,pool(c)).matches||[]){
+    const recognized=matcher(root?.HoopIQMatchupTeams?.stripHeader(raw)||raw,pool(c)).matches||[];
+    const keep=[];
+    for(const p of recognized){
      if(s.ignored[side].includes(p.id))continue;
-     const current=found.get(p.id);
-     if(current){current.sourceCount=(current.sourceCount||1)+1;continue}
-     found.set(p.id,{id:Number(p.id),name:p.name,team:p.team,slot:prev[side].get(p.id)||"UNASSIGNED",
-      confidence:p.confidence||0,sourceCount:1});
+     const existing=found.get(p.id);
+     if(existing){existing.sourceCount=(existing.sourceCount||1)+1;keep.push(existing);continue}
+     const player={id:Number(p.id),name:p.name,team:p.team,slot:"UNASSIGNED",
+      confidence:p.confidence||0,sourceCount:1,slotEvidence:""};
+     found.set(p.id,player);keep.push(player);
     }
+    const positioned=layout()?.labeled(keep,f[rawSide+"Lines"]||[],f.centerLines||[])||[];
+    observations.push({id:f.id,rows:positioned});
     const summary=extractTotals(raw);
-    if(!totals[side+"Projection"]&&summary.points)totals[side+"Projection"]=summary.points;
-    if(!totals[side+"Games"]&&summary.games)totals[side+"Games"]=summary.games;
-    if(!totals.weekNumber&&summary.week)totals.weekNumber=summary.week;
+    const header=f.headerScore?.[rawSide]||{};
+    const projection=header.projection||summary.points,games=header.games||summary.games;
+    if(!totals[side+"Projection"]&&projection)totals[side+"Projection"]=projection;
+    if(!totals[side+"Games"]&&games)totals[side+"Games"]=games;
+    if(!totals.weekNumber)totals.weekNumber=f.headerScore?.week||summary.week;
    }
-   s[side]=[...found.values()];
+   const positions=layout()?.resolve(observations,s.manualSlots[side]||{})||{order:[],positions:{}};
+   for(const player of found.values()){
+    const recognized=positions.positions[player.id];
+    if(recognized){
+     player.slot=recognized.slot;
+     player.slotEvidence=recognized.source;
+     player.slotConfidence=recognized.confidence;
+    }else{
+     player.slot="UNASSIGNED";player.slotEvidence="";player.slotConfidence="";
+    }
+   }
+   const ranking=new Map(positions.order.map((id,i)=>[id,i]));
+   s[side]=[...found.values()].sort((a,b)=>(ranking.get(a.id)??999)-(ranking.get(b.id)??999));
   }
   for(const key of Object.keys(totals)){
    const lastAuto=s.autoTotals[key]||"";
@@ -101,8 +126,13 @@
    }
    s.autoTotals[key]=totals[key];
   }
- }
- function selectSlots(value){
+  // The Week number is read from Yahoo; its date is only a proposed calendar
+  // mapping and remains editable. Never silently keep an outdated week.
+  const proposed=layout()?.yahooWeekDate(s.weekNumber,new Date())||"";
+  if(proposed&&!s.weekEdited&&(!s.week||s.week===s.autoWeek||s.week===c.state.weekStart)){
+   s.week=proposed;s.autoWeek=proposed;
+  }
+ } function selectSlots(value){
   return allSlots.map(key=>'<option value="'+key+'" '+(key===value?"selected":"")+'>'+
    (key==="UNASSIGNED"?"Needs review":key==="BN"?"Bench":key==="IL"?"Injured List":key.replace(/:1$/,"").replace(/:2$/," (2)"))+'</option>').join("");
  }
@@ -367,7 +397,7 @@
   }
   if(t.dataset?.weeklySlot){
    const [side,id]=t.dataset.weeklySlot.split(":");
-   const row=s[side]?.find(x=>x.id===Number(id));if(row)row.slot=t.value;return true;
+   const row=s[side]?.find(x=>x.id===Number(id));if(row){row.slot=t.value;s.manualSlots[side][Number(id)]=t.value;}return true;
   }
   return false;
  }
