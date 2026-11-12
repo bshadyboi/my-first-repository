@@ -58,14 +58,14 @@ function renderMatchup(c){
   state.opponentManual?opponentPlayers(c).filter(p=>(state.opponentPositions||{})[p.id]!=="IL"):[];
  const haveOwn=own.length>0,haveOpp=opp.length>0;
  const header='<div class="pagehead"><div><div class="eyebrow">YOUR WEEKLY GAME PLAN</div><h1>⚔ Matchup HQ</h1><p>Both teams, weekly points, lineup conflicts, and the waiver move that fits your schedule.</p></div><div class="buttonrow">'+weekControls()+'</div></div>'+(window.HoopIQWeeklyImport?.render(c)||"");
+ if(imported?.incomplete)return header+card("Complete this imported matchup",
+  '<p class="small muted">Your screenshot-based matchup is saved above, including the Yahoo projected points and games total. Some players or lineup slots are missing, so HoopIQ will not invent a complete weekly projection.</p>'+
+  '<p class="small muted">Tap <b>Edit snapshot</b> above to add scrolled screenshots or correct the positions. Your current My Team and Opponent rosters are unchanged.</p>');
  if(!haveOwn||!haveOpp)return header+'<div class="hq-steps"><span class="'+(haveOwn?"done":"")+'">1 · My Team</span><span class="'+(haveOpp?"done":"")+'">2 · Opponent</span><span>3 · Matchup HQ</span></div>'+
   card("Set up your matchup",'<div class="note blue">Import both rosters first. We never pretend example players are your real fantasy team.</div><div class="grid two" style="margin-top:15px">'+
   '<div class="hq-setup"><b>♙ Your team</b><p>'+(haveOwn?own.length+' confirmed players':'Your real roster is missing')+'</p>'+button("league",haveOwn?"Review my roster":"📸 Import my roster",haveOwn?"ghost":"primary")+'</div>'+
   '<div class="hq-setup"><b>♧ Opponent</b><p>'+(haveOpp?opp.length+' confirmed players':'Their roster is missing')+'</p>'+button("opponent",haveOpp?"Review opponent":"📸 Import opponent",haveOpp?"ghost":"primary")+'</div></div>')+
   '<div class="hq-cta">'+button("waivers","Browse waiver candidates","ghost")+'</div>';
- if(imported?.incomplete)return header+card("Finish importing this week's lineup",
-  '<p class="small muted">Your Yahoo matchup totals are saved above. Some player names or positions are missing, so HoopIQ cannot yet make a complete lineup-based projection for this week.</p>'+
-  '<p class="small muted">Use <b>Edit snapshot</b> to add the missing names or correct PG/SG/G/SF/PF/F/C/UTIL/Bench/IL positions. This keeps other weeks and your active roster unchanged.</p>');
  if(!scheduleReady())return header+scheduleNotice()+card("Rosters saved","The game schedule must load before we calculate a weekly matchup. No calendar or point totals are invented.");
  const missingStats=[...own,...opp].filter(p=>p.statsUnavailable);
  if(missingStats.length){
