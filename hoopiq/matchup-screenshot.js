@@ -7,14 +7,14 @@
  const slots=["PG:1","SG:1","G:1","SF:1","PF:1","F:1","C:1","C:2","UTIL:1","UTIL:2"];
  const allSlots=["UNASSIGNED",...slots,"BN","IL"];
  let nextId=0;
- const s={open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],ignored:{home:[],away:[]},week:"",weekNumber:"",
+ const s={open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},ignored:{home:[],away:[]},week:"",weekNumber:"",
   homeName:"",awayName:"",homeProjection:"",awayProjection:"",homeGames:"",awayGames:""};
  const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const validWeek=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||""))&&new Date(x+"T12:00:00Z").getUTCDay()===1;
  const normalize=x=>String(x||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").trim();
  function clear(){
   for(const x of s.files)if(x.preview&&typeof URL!=="undefined")URL.revokeObjectURL(x.preview);
-  Object.assign(s,{open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],
+  Object.assign(s,{open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},
     ignored:{home:[],away:[]},week:"",weekNumber:"",homeName:"",awayName:"",
     homeProjection:"",awayProjection:"",homeGames:"",awayGames:""});
  }
@@ -30,7 +30,7 @@
   const matcher=root?.HoopIQRosterOCR?.getMatches;
   if(typeof matcher!=="function")return;
   for(const side of ["home","away"]){
-   const found=new Map();
+   const found=new Map((s.base?.[side]||[]).filter(p=>!s.ignored[side].includes(p.id)).map(p=>[p.id,{...p,slot:prev[side].get(p.id)||p.slot}]));
    for(const f of s.files.filter(x=>x.status==="done")){
     for(const p of matcher(f[side+"Text"]||"",pool(c)).matches||[]){
      if(s.ignored[side].includes(p.id))continue;
@@ -137,7 +137,7 @@
   const rows=side=>s[side].map(p=>({id:p.id,name:p.name,team:p.team,slot:p.slot}));
   const snapshot={weekStart:week,weekNumber:s.weekNumber,homeName,awayName,homePlayers:rows("home"),awayPlayers:rows("away"),
    homeProjection:homeProj,awayProjection:awayProj,homeGames:gamesA,awayGames:gamesB,
-   incomplete:s.home.length<10||s.away.length<10||s.home.concat(s.away).some(p=>p.slot==="UNASSIGNED"),
+   incomplete:s.home.length<13||s.away.length<13||s.home.concat(s.away).some(p=>p.slot==="UNASSIGNED"),
    source:"yahoo-screenshot",savedAt:new Date().toISOString()};
   c.state.matchupSnapshots={...(c.state.matchupSnapshots||{}),[week]:snapshot};
   c.state.weekStart=week;c.persist();clear();c.render();c.toast("Yahoo matchup saved for "+week);
@@ -241,7 +241,8 @@
     s.awayProjection=saved.awayProjection==null?"":String(saved.awayProjection);
     s.homeGames=saved.homeGames||"";s.awayGames=saved.awayGames||"";
     s.home=saved.homePlayers.map(p=>({...p,confidence:100}));
-    s.away=saved.awayPlayers.map(p=>({...p,confidence:100}));c.render();
+    s.away=saved.awayPlayers.map(p=>({...p,confidence:100}));
+    s.base={home:s.home.map(p=>({...p})),away:s.away.map(p=>({...p}))};c.render();
    }return true;
   }
   return false;
