@@ -205,7 +205,7 @@
     ["homeGames","My games (played/total)","text"],["awayGames","Opponent games (played/total)","text"]];
    html+='<div class="weekly-fields">'+inputs.map(([key,label,type])=>
     '<label>'+label+'<input id="weekly-'+key+'" class="textinput" type="'+type+'" '+
-    (type==="number"?'step="0.01" min="0" ':"")+'value="'+esc(s[key]||(key==="week"?c.state.weekStart:""))+
+    (type==="number"?'step="0.01" min="0" ':"")+'value="'+esc(s[key]||(key==="week"?suggestedStartWeek(c):""))+
     '" placeholder="'+(key.endsWith("Games")?"0/43":"")+'"></label>').join("")+'</div>';
    html+='<div class="weekly-review">'+["home","away"].map(side=>{
     const assigned=s[side].filter(p=>p.slot!=="UNASSIGNED").length;
@@ -223,6 +223,15 @@
   }
   return html+'</div>';
  }
+ function suggestedStartWeek(c){
+  const saved=String(c.state.weekStart||"");
+  if(!validWeek(saved))return "";
+  const now=new Date(),day=now.getDay(),offset=(day+6)%7;
+  const monday=new Date(now.getFullYear(),now.getMonth(),now.getDate()-offset);
+  const older=new Date(monday.getFullYear(),monday.getMonth(),monday.getDate()-7);
+  const selected=new Date(saved+"T12:00:00");
+  return selected>=older&&selected<=new Date(now.getFullYear(),now.getMonth(),now.getDate()+42)?saved:"";
+ }
  function capture(c){
   for(const key of ["week","weekNumber","homeName","awayName","homeProjection","awayProjection","homeGames","awayGames"]){
    const node=c.$("weekly-"+key);if(node)s[key]=String(node.value||"").trim();
@@ -237,7 +246,7 @@
  function save(c){
   if(s.busy)return;
   capture(c);
-  const week=s.week||c.state.weekStart;
+  const week=s.week;
   if(!validWeek(week)){s.error="Choose the Monday of the matchup week.";c.render();return}
   if(s.files.some(f=>f.status==="done")){
    s.identity=identifyScreenshots(c);
@@ -467,6 +476,12 @@
   }
   if(t.id==="weekly-week"){
    s.week=String(t.value||"");s.weekEdited=true;return true;
+  }
+  if(t.id==="weekly-weekNumber"){
+   s.weekNumber=String(t.value||"").trim();s.editedTotals.weekNumber=true;
+   const proposed=layout()?.yahooWeekDate(s.weekNumber,new Date())||"";
+   if(proposed&&!s.weekEdited){s.week=proposed;s.autoWeek=proposed;c.render()}
+   return true;
   }
   if(t.dataset?.weeklySlot){
    const [side,id]=t.dataset.weeklySlot.split(":");
