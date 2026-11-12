@@ -8,7 +8,8 @@
  const allSlots=["UNASSIGNED",...slots,"BN","IL"];
  let nextId=0;
  const s={open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},ignored:{home:[],away:[]},
-  sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},week:"",weekNumber:"",
+  sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},
+  autoTotals:{homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""},editedTotals:{},week:"",weekNumber:"",
   homeName:"",awayName:"",homeProjection:"",awayProjection:"",homeGames:"",awayGames:""};
  const esc=x=>String(x==null?"":x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  const validWeek=x=>/^\d{4}-\d{2}-\d{2}$/.test(String(x||""))&&new Date(x+"T12:00:00Z").getUTCDay()===1;
@@ -17,6 +18,7 @@
   for(const x of s.files)if(x.preview&&typeof URL!=="undefined")URL.revokeObjectURL(x.preview);
   Object.assign(s,{open:false,busy:false,error:"",progress:"",files:[],home:[],away:[],base:{home:[],away:[]},
     sideOverride:"auto",identity:null,detectedNames:{home:"",away:""},userEditedNames:{home:false,away:false},
+    autoTotals:{homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""},editedTotals:{},
     ignored:{home:[],away:[]},week:"",weekNumber:"",homeName:"",awayName:"",
     homeProjection:"",awayProjection:"",homeGames:"",awayGames:""});
  }
@@ -67,6 +69,7 @@
   if(typeof matcher!=="function")return;
   s.identity=identifyScreenshots(c);
   const sourceMap=new Map(s.identity.files.map(f=>[f.id,f]));
+  const totals={homeProjection:"",awayProjection:"",homeGames:"",awayGames:"",weekNumber:""};
   for(const side of ["home","away"]){
    const found=new Map((s.base?.[side]||[]).filter(p=>!s.ignored[side].includes(p.id))
      .map(p=>[p.id,{...p,slot:prev[side].get(p.id)||p.slot,sourceCount:1}]));
@@ -83,11 +86,20 @@
       confidence:p.confidence||0,sourceCount:1});
     }
     const summary=extractTotals(raw);
-    if(!s[side+"Projection"]&&summary.points)s[side+"Projection"]=summary.points;
-    if(!s[side+"Games"]&&summary.games)s[side+"Games"]=summary.games;
-    if(!s.weekNumber&&summary.week)s.weekNumber=summary.week;
+    if(!totals[side+"Projection"]&&summary.points)totals[side+"Projection"]=summary.points;
+    if(!totals[side+"Games"]&&summary.games)totals[side+"Games"]=summary.games;
+    if(!totals.weekNumber&&summary.week)totals.weekNumber=summary.week;
    }
    s[side]=[...found.values()];
+  }
+  for(const key of Object.keys(totals)){
+   const lastAuto=s.autoTotals[key]||"";
+   const isAuto=!s[key]||s[key]===lastAuto;
+   if(!s.editedTotals[key]&&isAuto){
+    if(totals[key])s[key]=totals[key];
+    else if(lastAuto&&s[key]===lastAuto)s[key]="";
+   }
+   s.autoTotals[key]=totals[key];
   }
  }
  function selectSlots(value){
@@ -317,6 +329,8 @@
     s.homeProjection=saved.homeProjection==null?"":String(saved.homeProjection);
     s.awayProjection=saved.awayProjection==null?"":String(saved.awayProjection);
     s.homeGames=saved.homeGames||"";s.awayGames=saved.awayGames||"";
+    s.editedTotals={homeProjection:true,awayProjection:true,homeGames:true,awayGames:true,weekNumber:true};
+    s.userEditedNames={home:true,away:true};
     s.home=saved.homePlayers.map(p=>({...p,confidence:100}));
     s.away=saved.awayPlayers.map(p=>({...p,confidence:100}));
     s.base={home:s.home.map(p=>({...p})),away:s.away.map(p=>({...p}))};c.render();
@@ -340,6 +354,12 @@
    const side=t.id==="weekly-homeName"?"home":"away";
    s[side+"Name"]=String(t.value||"").trim();
    s.userEditedNames[side]=true;
+   return true;
+  }
+  if(["weekly-homeProjection","weekly-awayProjection","weekly-homeGames","weekly-awayGames","weekly-weekNumber"].includes(t.id)){
+   const key=t.id.slice("weekly-".length);
+   s[key]=String(t.value||"").trim();
+   s.editedTotals[key]=true;
    return true;
   }
   if(t.id==="weeklySavedWeek"&&validWeek(t.value)){
