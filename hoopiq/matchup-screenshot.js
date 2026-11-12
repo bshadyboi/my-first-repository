@@ -276,6 +276,8 @@
    const W=bmp.width,H=bmp.height;
    const rect=side==="center"?[.407,.195,.10,.83]:
     side==="header"?[.035,.93,.12,.41]:
+    side==="header-left"?[0,.51,.12,.41]:
+    side==="header-right"?[.49,.51,.12,.41]:
     side==="left"?[0,.51,.11,.83]:[.49,.51,.11,.83];
    const x=Math.floor(W*rect[0]),w=Math.ceil(W*rect[1]);
    const y=Math.floor(H*rect[2]),h=Math.ceil(H*rect[3]);
@@ -357,6 +359,18 @@
         games:scores.right.games||alternate.right.games},
        week:scores.week||alternate.week};
       f.headerText+="\n"+contrast.text;
+     }
+     // Re-scan whichever scoreboard half still lacks a projection. A full
+     // width OCR pass sometimes merges both teams into one unreadable line.
+     for(const side of ["left","right"]){
+      if(scores[side].projection&&scores[side].games)continue;
+      const half=await read(await crop(f.file,"header-"+side,true,image));
+      const halfResult=extractTotals(half.text);
+      if(!scores[side].projection&&halfResult.points)scores[side].projection=halfResult.points;
+      if(!scores[side].games&&halfResult.games)scores[side].games=halfResult.games;
+      if(!scores.week&&halfResult.week)scores.week=halfResult.week;
+      f[side+"Text"]=half.text+"\n"+f[side+"Text"];
+      f.headerText+="\n"+half.text;
      }
      f.headerScore=scores;
      // Improve team name/header detection if it was missed in the taller side crops.
