@@ -166,6 +166,31 @@
     if(!used.has(key)){used.add(key);known.set(ord[j].id,{slot:key,confidence:"suggested",source:"between verified Yahoo rows"})}
    }
   }
+  // When the first screenshot includes the Yahoo scoreboard and at least
+  // five starting rows, the full 10-player ordering is a useful fallback
+  // if every OCR-verified starter slot agrees. Mark all fallbacks as
+  // "suggested", not verified, so users see exactly what to review.
+  const top=(observations||[]).some(o=>o.hasHeader&&(o.rows||[]).length>=5);
+  if(top&&order.length>=10){
+   const expected=i=>{
+    const label=START[i];
+    return label+":"+START.slice(0,i+1).filter(x=>x===label).length;
+   };
+   const starterOutside=order.slice(10).some(id=>known.get(id)?.slot?.includes(":"));
+   const contradiction=order.slice(0,10).some((id,i)=>{
+    const value=known.get(id)?.slot;
+    return Boolean(value&&value!==expected(i));
+   });
+   if(!starterOutside&&!contradiction){
+    for(let i=0;i<10;i++){
+     const id=order[i],key=expected(i);
+     if(!known.has(id)&&!used.has(key)){
+      known.set(id,{slot:key,confidence:"suggested",source:"Yahoo lineup row order — verify"});
+      used.add(key);
+     }
+    }
+   }
+  }
   return {order,positions:Object.fromEntries([...known].map(([id,v])=>[id,v]))};
  }
  function scoreboard(rows){
