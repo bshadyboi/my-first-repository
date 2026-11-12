@@ -75,7 +75,7 @@
     if(orientation==="unknown")continue;
     const rawSide=(side==="home"?(orientation==="left"?"left":"right"):(orientation==="left"?"right":"left"));
     const raw=String(f[rawSide+"Text"]??f[(rawSide==="left"?"home":"away")+"Text"]??"");
-    for(const p of matcher(raw,pool(c)).matches||[]){
+    for(const p of matcher(root?.HoopIQMatchupTeams?.stripHeader(raw)||raw,pool(c)).matches||[]){
      if(s.ignored[side].includes(p.id))continue;
      const current=found.get(p.id);
      if(current){current.sourceCount=(current.sourceCount||1)+1;continue}
