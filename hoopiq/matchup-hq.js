@@ -61,6 +61,8 @@ function renderMatchup(c){
  if(imported?.incomplete)return header+card("Complete this imported matchup",
   '<p class="small muted">Your screenshot-based matchup is saved above, including the Yahoo projected points and games total. Some players or lineup slots are missing, so HoopIQ will not invent a complete weekly projection.</p>'+
   '<p class="small muted">Tap <b>Edit snapshot</b> above to add scrolled screenshots or correct the positions. Your current My Team and Opponent rosters are unchanged.</p>');
+ if(imported&&(!haveOwn||!haveOpp))return header+card("Yahoo matchup imported",
+  '<p class="small muted">The screenshot matchup is saved above, but some players are missing from the current NBA statistics feed. The Yahoo-provided numbers are preserved without inventing HoopIQ projections. You can still edit or add more screenshots.</p>');
  if(!haveOwn||!haveOpp)return header+'<div class="hq-steps"><span class="'+(haveOwn?"done":"")+'">1 · My Team</span><span class="'+(haveOpp?"done":"")+'">2 · Opponent</span><span>3 · Matchup HQ</span></div>'+
   card("Set up your matchup",'<div class="note blue">Import both rosters first. We never pretend example players are your real fantasy team.</div><div class="grid two" style="margin-top:15px">'+
   '<div class="hq-setup"><b>♙ Your team</b><p>'+(haveOwn?own.length+' confirmed players':'Your real roster is missing')+'</p>'+button("league",haveOwn?"Review my roster":"📸 Import my roster",haveOwn?"ghost":"primary")+'</div>'+
