@@ -51,9 +51,18 @@ function snapshot(c,list){
 }
 function renderMatchup(c){
  const {state,esc,button,card,sampleRoster,scheduleReady,scheduleNotice,weekControls,f,weekInfo,addDropSuggestions,suggestionCards}=c;
- const own=state.manualRoster?sampleRoster().filter(p=>(state.rosterPositions||{})[p.id]!=="IL"):[],opp=state.opponentManual?opponentPlayers(c).filter(p=>(state.opponentPositions||{})[p.id]!=="IL"):[];
+ const imported=state.matchupSnapshots?.[state.weekStart]||null;
+ const own=imported?(imported.homePlayers||[]).filter(p=>p.slot!=="IL").map(p=>c.P(p.id)).filter(Boolean):
+  state.manualRoster?sampleRoster().filter(p=>(state.rosterPositions||{})[p.id]!=="IL"):[];
+ const opp=imported?(imported.awayPlayers||[]).filter(p=>p.slot!=="IL").map(p=>c.P(p.id)).filter(Boolean):
+  state.opponentManual?opponentPlayers(c).filter(p=>(state.opponentPositions||{})[p.id]!=="IL"):[];
  const haveOwn=own.length>0,haveOpp=opp.length>0;
- const header='<div class="pagehead"><div><div class="eyebrow">YOUR WEEKLY GAME PLAN</div><h1>⚔ Matchup HQ</h1><p>Both teams, weekly points, lineup conflicts, and the waiver move that fits your schedule.</p></div><div class="buttonrow">'+weekControls()+'</div></div>';
+ const header='<div class="pagehead"><div><div class="eyebrow">YOUR WEEKLY GAME PLAN</div><h1>⚔ Matchup HQ</h1><p>Both teams, weekly points, lineup conflicts, and the waiver move that fits your schedule.</p></div><div class="buttonrow">'+weekControls()+'</div></div>'+(window.HoopIQWeeklyImport?.render(c)||"");
+ if(imported?.incomplete)return header+card("Complete this imported matchup",
+  '<p class="small muted">Your screenshot-based matchup is saved above, including the Yahoo projected points and games total. Some players or lineup slots are missing, so HoopIQ will not invent a complete weekly projection.</p>'+
+  '<p class="small muted">Tap <b>Edit snapshot</b> above to add scrolled screenshots or correct the positions. Your current My Team and Opponent rosters are unchanged.</p>');
+ if(imported&&(!haveOwn||!haveOpp))return header+card("Yahoo matchup imported",
+  '<p class="small muted">The screenshot matchup is saved above, but some players are missing from the current NBA statistics feed. The Yahoo-provided numbers are preserved without inventing HoopIQ projections. You can still edit or add more screenshots.</p>');
  if(!haveOwn||!haveOpp)return header+'<div class="hq-steps"><span class="'+(haveOwn?"done":"")+'">1 · My Team</span><span class="'+(haveOpp?"done":"")+'">2 · Opponent</span><span>3 · Matchup HQ</span></div>'+
   card("Set up your matchup",'<div class="note blue">Import both rosters first. We never pretend example players are your real fantasy team.</div><div class="grid two" style="margin-top:15px">'+
   '<div class="hq-setup"><b>♙ Your team</b><p>'+(haveOwn?own.length+' confirmed players':'Your real roster is missing')+'</p>'+button("league",haveOwn?"Review my roster":"📸 Import my roster",haveOwn?"ghost":"primary")+'</div>'+
@@ -66,7 +75,7 @@ function renderMatchup(c){
     '<div class="note warn">The following players appear on an NBA roster but lack current-season averages: <b>'+missingStats.map(p=>esc(p.name)).join(", ")+'</b>. HoopIQ will not treat missing numbers as zero or invent projections. Review those players before relying on matchup totals.</div>'+
     '<div class="buttonrow" style="margin-top:15px">'+button("opponent","Edit opponent","ghost")+button("league","Review my roster","ghost")+button("matchups","See games this week","primary")+'</div>');
  }
- const mine=snapshot(c,own),other=snapshot(c,opp),diff=mine.points-other.points,nm=esc(state.name||"My Team"),oppName=esc(state.opponent||"Opponent");
+ const mine=snapshot(c,own),other=snapshot(c,opp),diff=mine.points-other.points,nm=esc(imported?.homeName||state.name||"My Team"),oppName=esc(imported?.awayName||state.opponent||"Opponent");
  const margin=(diff>=0?"You lead by ":"You trail by ")+f(Math.abs(diff))+" modeled FP";
  const kpi=(k,v,n)=>'<div class="overview-kpi"><span>'+k+'</span><b>'+v+'</b><span>'+n+'</span></div>';
  let html=header+'<div class="hq-versus"><div><small>♛ '+nm+'</small><strong>'+f(mine.points)+'</strong><span>'+mine.starts+' usable starts</span></div>'+
@@ -82,10 +91,10 @@ function renderMatchup(c){
   return '<div class="hq-category"><span>'+label+'</span><div class="hq-bars"><i style="width:'+Math.max(2,a/total*100)+'%"></i><i style="width:'+Math.max(2,b/total*100)+'%"></i></div><strong>'+f(a,0)+' / '+f(b,0)+'</strong></div>';
  }).join("")+'<p class="strategy-note">Modeled stat totals for context; points league scoring uses your custom FP weights.</p>';
  html+='<div class="grid two" style="margin-top:15px">'+card("📅 Seven-day schedule",map)+card("Stat contribution",cats)+'</div>';
- const adds=addDropSuggestions(3);
+ const adds=imported?[]:addDropSuggestions(3);
  html+='<div class="grid two" style="margin-top:15px">'+
  card("⚡ What move helps me win this week?",adds.length?suggestionCards(adds,true):
- '<div class="empty">Import players you confirmed are available in Yahoo to generate add/drop comparisons. We won\'t assume everyone is on waivers.</div><div class="hq-cta">'+button("waivers","Import available players","primary")+'</div>')+
+ '<div class="empty">'+(imported?'This week is loaded from a Yahoo screenshot. Personalized add/drop suggestions still require your current My Team and confirmed Yahoo available-player list.':'Import players you confirmed are available in Yahoo to generate add/drop comparisons. We won\'t assume everyone is on waivers.')+'</div><div class="hq-cta">'+button("waivers","Import available players","primary")+'</div>')+
  card("Matchup opportunities",'<div class="statrow"><span>Scheduled games advantage</span><b>'+((mine.games-other.games)>=0?"+":"")+(mine.games-other.games)+'</b></div>'+
  '<div class="statrow"><span>Your bench conflicts</span><b>'+mine.blocked+'</b></div>'+
  '<div class="statrow"><span>Your open weekly starter slots</span><b>'+mine.daily.reduce((n,d)=>n+Math.max(0,c.lineupCapacity()-d.starts),0)+'</b></div>'+
@@ -95,6 +104,7 @@ function renderMatchup(c){
  return html;
 }
 function onClick(c,a,el){
+ if(window.HoopIQWeeklyImport?.onClick(c,a,el))return true;
  const {state,imageReview:r,render,persist,toast,button,P,nbaPlayers,players,scanYahooPhoto,suggestPhotoNames,clearImageReview,$}=c;
  if(a==="opponentImportToggle"){state.opponentImportOpen=!state.opponentImportOpen;persist();render();return true}
  if(a==="opponentManualToggle"){state.opponentManualAddOpen=!state.opponentManualAddOpen;persist();render();return true}
@@ -127,6 +137,7 @@ function onClick(c,a,el){
  return false;
 }
 function onChange(c,t){
+ if(window.HoopIQWeeklyImport?.onChange(c,t))return true;
  const {state,imageReview:r,scanYahooPhotos,nbaPlayers,players,persist,render,toast}=c;
  if(t.dataset.reviewopponent){const id=Number(t.dataset.reviewopponent);if(t.checked)r.selected.add(id);else r.selected.delete(id);return true}
  if(t.id==="opponentImportMode"){r.replaceRoster=t.value==="replace";return true}

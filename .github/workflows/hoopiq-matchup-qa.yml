@@ -26,3 +26,4 @@ jobs:
           node hoopiq/tests/import-batch.cjs
           node hoopiq/tests/lineup-slots.cjs
           node hoopiq/tests/personal-roster-link.cjs
+          node hoopiq/tests/matchup-screenshot.cjs

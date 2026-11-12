@@ -309,3 +309,48 @@ select option{background:#191b34;color:#f4efff}
 .personal-code-import[open] summary{margin-bottom:12px}
 .personal-code-import textarea{display:block;width:100%;min-height:82px;max-height:180px;resize:vertical;background:#141a33;color:#efebff;font-size:12px;line-height:1.5;margin:12px 0}
 .personal-code-import p{margin:9px 0}
+
+/* Matchup screenshot importer: mobile-first, dark purple and blue. */
+.weekly-import{margin:16px 0;padding:16px;border:1px solid #59478e;border-radius:16px;background:linear-gradient(145deg,#1b1b37,#12192f)}
+.weekly-import h2{font-size:19px;margin:0 0 6px;color:#e9dbff}
+.weekly-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:15px 0}
+.weekly-fields label{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:750;color:#aeb7d9}
+.weekly-fields input{width:100%;min-width:0}
+.weekly-review,.weekly-saved-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.weekly-review>div,.weekly-saved-side{background:#171d37;border:1px solid #45416b;border-radius:13px;padding:12px;min-width:0}
+.weekly-review h3,.weekly-saved-side h3{color:#eae1ff;font-size:14px;line-height:1.45;margin:2px 0 13px}
+.weekly-import-person{display:grid;grid-template-columns:minmax(0,1fr) minmax(95px,.65fr) 28px;align-items:center;gap:7px;padding:9px 0;border-bottom:1px solid #383956}
+.weekly-import-person>div{min-width:0}.weekly-import-person b{font-size:11px;color:#fff;display:block;overflow-wrap:anywhere}
+.weekly-import-person small{font-size:10px;color:#a3aed4;display:block}
+.weekly-import-person select{font-size:10px;min-height:34px;padding:5px;max-width:100%}
+.weekly-import-person .btn{padding:4px;font-size:13px}
+.weekly-thumbnails{display:flex;gap:10px;overflow-x:auto;margin:13px 0;padding:3px 0}
+.weekly-thumb{display:flex;align-items:center;gap:8px;background:#222344;border:1px solid #48456b;border-radius:11px;padding:8px;flex:0 0 170px;min-width:0}
+.weekly-thumb img{width:39px;height:60px;border-radius:6px;object-fit:cover;object-position:top;border:1px solid #625388}
+.weekly-thumb>div{min-width:0;flex:1}.weekly-thumb b{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e9ddff}
+.weekly-thumb small{display:block;font-size:10px;color:#b8b6da}
+.weekly-ocr-edit{margin:15px 0;border:1px solid #514979;background:#24203e;border-radius:12px;padding:12px;color:#e8daff}
+.weekly-ocr-edit summary{cursor:pointer;font-size:12px;font-weight:850}
+.weekly-ocr-file{border-top:1px solid #4a436d;margin-top:10px;padding-top:10px}
+.weekly-ocr-file>b{font-size:12px}.weekly-ocr-file label{display:block;font-size:11px;margin-top:10px}
+.weekly-ocr-file textarea{display:block;width:100%;height:100px;resize:vertical;background:#131b35;color:#eee7ff;border:1px solid #57527a;border-radius:8px;padding:9px;margin:5px 0;font-size:11px}
+.weekly-versus{display:grid;grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr);gap:7px;align-items:center;background:linear-gradient(110deg,#322159,#182342,#193365);border-radius:13px;padding:16px}
+.weekly-versus>div{min-width:0;display:flex;flex-direction:column;gap:6px}.weekly-versus>div:last-child{text-align:right;align-items:flex-end}
+.weekly-versus small{font-size:11px;color:#d1c0ff;font-weight:800;overflow-wrap:anywhere}
+.weekly-versus strong{font-size:clamp(20px,3vw,33px);color:#fff;font-weight:900;letter-spacing:-1px}
+.weekly-versus span:not(.weekly-vs){font-size:10px;color:#b4c6e5}
+.weekly-vs{text-align:center;font-size:12px;font-weight:900;color:#e1b6ff}
+.weekly-saved-side>div{display:flex;gap:9px;border-top:1px solid #393c5f;padding:8px 2px;align-items:start}
+.weekly-saved-side>div>span{font-size:10px;color:#d6c8ff;font-weight:850;min-width:36px}
+.weekly-saved-side>div>b{font-size:11px;color:#f0eaff;overflow-wrap:anywhere}
+.weekly-saved-picker{margin:13px 0;display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+.weekly-saved-picker label{font-size:11px;color:#bfc3e5}
+.weekly-saved-picker select{font-size:12px}
+@media(max-width:720px){
+ .weekly-import{padding:12px;margin:14px 0;border-radius:13px}
+ .weekly-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .weekly-review,.weekly-saved-grid{grid-template-columns:1fr}
+ .weekly-versus{padding:12px;grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr)}
+ .weekly-versus strong{font-size:23px}
+ .weekly-versus small{font-size:10px}
+}
