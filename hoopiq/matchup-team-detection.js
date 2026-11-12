@@ -27,9 +27,17 @@
   }
   return "";
  }
+ function stripHeader(text){
+  const label=headerLabel(text);
+  if(!label)return String(text||"");
+  const target=normalize(label),lines=String(text||"").split("\n");
+  const index=lines.findIndex(x=>normalize(x)===target);
+  if(index>=0)lines[index]="";
+  return lines.join("\n");
+ }
  function scoreCandidates(file,matcher,pool,known){
   const left=String(file.leftText??file.homeText??""),right=String(file.rightText??file.awayText??"");
-  const leftPlayers=(matcher(left,pool)?.matches||[]),rightPlayers=(matcher(right,pool)?.matches||[]);
+  const leftPlayers=(matcher(stripHeader(left),pool)?.matches||[]),rightPlayers=(matcher(stripHeader(right),pool)?.matches||[]);
   const own=new Set((known?.homeIds||[]).map(Number)),opp=new Set((known?.awayIds||[]).map(Number));
   let leftHome=0,rightHome=0,leftAway=0,rightAway=0;
   for(const p of leftPlayers){
@@ -93,5 +101,5 @@
    playerCounts:{home:new Set(resolved.flatMap(a=>a.orientation==="left"?a.matchedLeft:a.orientation==="right"?a.matchedRight:[])).size,
     away:new Set(resolved.flatMap(a=>a.orientation==="left"?a.matchedRight:a.orientation==="right"?a.matchedLeft:[])).size}};
  }
- return {normalize,headerLabel,scoreCandidates,identify};
+ return {normalize,headerLabel,stripHeader,scoreCandidates,identify};
 });
