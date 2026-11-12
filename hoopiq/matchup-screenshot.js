@@ -1,8 +1,8 @@
 /* Yahoo weekly matchup image importer. Local data only; no Yahoo API writes. */
 (function(root,factory){
- const x=factory();if(typeof module!=="undefined"&&module.exports)module.exports=x;
+ const x=factory(root);if(typeof module!=="undefined"&&module.exports)module.exports=x;
  if(root)root.HoopIQWeeklyImport=x;
-})(typeof window!=="undefined"?window:null,function(){
+})(typeof window!=="undefined"?window:null,function(root){
  "use strict";
  const slots=["PG:1","SG:1","G:1","SF:1","PF:1","F:1","C:1","C:2","UTIL:1","UTIL:2"];
  const allSlots=["UNASSIGNED",...slots,"BN","IL"];
