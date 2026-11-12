@@ -257,5 +257,5 @@
   }
   return false;
  }
- return {render,onClick,onChange,parse,extractTotals,validWeek,session:s,clear};
+ return {render,onClick,onChange,parse,save,extractTotals,validWeek,session:s,clear};
 });
