@@ -47,9 +47,11 @@
  }
  function locate(players,ocrLines){
   const list=(players||[]).map(player=>{
-   const n=norm(player.name),bits=n.split(" "),suffix=new Set(["JR","II","III","IV"]);
-   const last=bits.slice(1).filter(t=>!suffix.has(t)).join(" ");
-   const first=bits[0]||"",initial=first[0]||"";
+   const n=norm(player.name),rawParts=String(player.name||"").trim().split(/\s+/);
+   const suffix=new Set(["JR","JR.","II","III","IV"]);
+   const meaningful=rawParts.filter(t=>!suffix.has(String(t).toUpperCase()));
+   const last=norm(meaningful[meaningful.length-1]||""),first=norm(meaningful[0]||"");
+   const initial=first[0]||"";
    const candidates=[];
    for(const l of ocrLines||[]){
     const text=" "+norm(l.text)+" ";
